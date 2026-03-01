@@ -6,9 +6,15 @@
   <title>Joshua’s Couch to 26.2 🏃‍♂️</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     body { font-family: system-ui, sans-serif; }
     .progress-circle { background: conic-gradient(#22c55e 0% var(--progress), #374151 var(--progress) 100%); }
+    #routeMap { height: 420px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .tab-btn.active { border-bottom: 2px solid #22c55e; color: #22c55e; }
   </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen">
@@ -31,7 +37,7 @@
       <div class="grid md:grid-cols-2 gap-8">
         <div>
           <label class="block text-sm text-gray-400 mb-2">Start Date</label>
-          <input id="startDate" type="date" class="bg-gray-800 text-white px-4 py-3 rounded-2xl w-full" onchange="updateProgress()">
+          <input id="startDate" type="date" class="bg-gray-800 text-white px-4 py-3 rounded-2xl w-full" onchange="updateProgress()" value="2026-03-01">
           <p class="text-xs text-gray-500 mt-2">Today’s default: March 1, 2026</p>
         </div>
         <div class="text-center">
@@ -62,23 +68,26 @@
     </div>
 
     <!-- Tabs -->
-    <div class="flex border-b border-gray-800 mb-6">
-      <button onclick="switchTab(0)" class="tab-btn active px-6 py-3 font-medium border-b-2 border-green-500 text-green-500">Dashboard</button>
-      <button onclick="switchTab(1)" class="tab-btn px-6 py-3 font-medium text-gray-400 hover:text-white">Full Plan</button>
-      <button onclick="switchTab(2)" class="tab-btn px-6 py-3 font-medium text-gray-400 hover:text-white">Strength</button>
-      <button onclick="switchTab(3)" class="tab-btn px-6 py-3 font-medium text-gray-400 hover:text-white">DFW Tips</button>
+    <div class="flex border-b border-gray-800 mb-6 overflow-x-auto pb-1">
+      <button onclick="switchTab(0)" class="tab-btn active px-6 py-3 font-medium whitespace-nowrap">Dashboard</button>
+      <button onclick="switchTab(1)" class="tab-btn px-6 py-3 font-medium text-gray-400 hover:text-white whitespace-nowrap">Full Plan</button>
+      <button onclick="switchTab(2)" class="tab-btn px-6 py-3 font-medium text-gray-400 hover:text-white whitespace-nowrap">Strength</button>
+      <button onclick="switchTab(3)" class="tab-btn px-6 py-3 font-medium text-gray-400 hover:text-white whitespace-nowrap">DFW Tips</button>
+      <button onclick="switchTab(4)" class="tab-btn px-6 py-3 font-medium text-gray-400 hover:text-white whitespace-nowrap">🗺️ Maps & Routes</button>
     </div>
 
-    <!-- Tab Content -->
-    <div id="tab0" class="tab-content">
+    <!-- Tab 0: Dashboard -->
+    <div id="tab0" class="tab-content active">
       <div id="weekCards" class="grid md:grid-cols-2 gap-4"></div>
     </div>
 
-    <div id="tab1" class="tab-content hidden">
+    <!-- Tab 1: Full Plan -->
+    <div id="tab1" class="tab-content">
       <div class="space-y-6" id="fullPlan"></div>
     </div>
 
-    <div id="tab2" class="tab-content hidden">
+    <!-- Tab 2: Strength -->
+    <div id="tab2" class="tab-content">
       <div class="bg-gray-900 rounded-3xl p-8 space-y-8">
         <h3 class="text-2xl font-bold">2×/week Strength (20 min)</h3>
         <div class="grid md:grid-cols-2 gap-6">
@@ -96,7 +105,8 @@
       </div>
     </div>
 
-    <div id="tab3" class="tab-content hidden">
+    <!-- Tab 3: DFW Tips -->
+    <div id="tab3" class="tab-content">
       <div class="bg-gray-900 rounded-3xl p-8 prose prose-invert">
         <h3 class="text-2xl">DFW Running Tips</h3>
         <ul class="list-disc pl-5 space-y-3">
@@ -106,6 +116,34 @@
           <li>Carry water + electrolytes every run >45 min</li>
           <li>Pain ≠ soreness → stop and see PT</li>
         </ul>
+      </div>
+    </div>
+
+    <!-- Tab 4: Maps & Routes (Strava-style) -->
+    <div id="tab4" class="tab-content">
+      <div class="bg-gray-900 rounded-3xl p-8">
+        <h3 class="text-3xl font-bold mb-2 flex items-center gap-3">🗺️ Strava-Style Route Builder</h3>
+        <p class="text-gray-400 mb-6">Tap the map to trace any route (Trinity Trails, lake loops, etc.). Live miles update instantly. All saved forever in your browser.</p>
+        
+        <div id="routeMap" class="rounded-3xl overflow-hidden shadow-2xl"></div>
+        
+        <div class="flex gap-3 mt-6">
+          <button onclick="startNewRoute()" class="flex-1 bg-green-500 hover:bg-green-600 py-4 rounded-2xl font-bold text-lg">Start New Route</button>
+          <button onclick="clearCurrentRoute()" class="flex-1 bg-gray-700 hover:bg-gray-600 py-4 rounded-2xl font-bold text-lg">Clear Map</button>
+          <button onclick="saveCurrentRoute()" class="flex-1 bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-bold text-lg">💾 Save Route</button>
+        </div>
+        
+        <div class="mt-8">
+          <div class="flex justify-between items-baseline mb-4">
+            <span class="text-xl font-semibold">Current Route Distance</span>
+            <span id="currentDistance" class="text-4xl font-bold text-green-400">0.0 miles</span>
+          </div>
+        </div>
+
+        <div class="mt-10">
+          <h4 class="font-semibold text-lg mb-4">Saved Routes</h4>
+          <div id="savedRoutesList" class="space-y-3"></div>
+        </div>
       </div>
     </div>
 
@@ -129,12 +167,7 @@
   </div>
 
   <script>
-    // Tailwind script already loaded
-    function initTailwind() {
-      // Already initialized via CDN
-    }
-
-    // Training plan data (from our exact step-by-step plan)
+    // Training plan data - full 24 weeks based on your step-by-step plan
     const planData = [
       {week:1, title:"Week 1 - Couch to 5K Start", long:"25 min walk/run", runs:[
         {id:"w1-tue", label:"Tue: Walk/Run 20 min (1 min run / 2 min walk)", dist:"\~2 mi"},
@@ -142,53 +175,147 @@
         {id:"w1-sat", label:"Sat: Walk/Run 25 min (same)", dist:"\~2.5 mi"}
       ]},
       {week:2, title:"Week 2", long:"30 min", runs:[
-        {id:"w2-tue", label:"Tue: Walk/Run 25 min (1/1 ratio)", dist:"\~2.5 mi"},
-        {id:"w2-thu", label:"Thu: Walk/Run 25 min", dist:"\~2.5 mi"},
+        {id:"w2-tue", label:"Tue: Walk/Run 25 min (1 min run / 1 min walk)", dist:"\~2.5 mi"},
+        {id:"w2-thu", label:"Thu: Walk/Run 25 min (same)", dist:"\~2.5 mi"},
         {id:"w2-sat", label:"Sat: Walk/Run 30 min", dist:"\~3 mi"}
       ]},
-      // ... (weeks 3-4 same style - abbreviated here for length; full 24 weeks follow exact progression from our chat)
-      // Weeks 5-24 follow the same pattern with increasing long runs up to 20 mi in week 22
-      // For brevity in this example, all weeks use the same structure - you can expand the array with the full details from our previous messages
-      // In the real pasted version I would include all 24, but here it's truncated to show format
-      {week:24, title:"Week 24 - RACE WEEK! 🏅", long:"26.2 miles", runs:[
+      {week:3, title:"Week 3", long:"30 min continuous", runs:[
+        {id:"w3-tue", label:"Tue: Walk/Run 25 min (1.5 min run / 30 sec walk)", dist:"\~2.5 mi"},
+        {id:"w3-thu", label:"Thu: Walk/Run 25 min (same)", dist:"\~2.5 mi"},
+        {id:"w3-sat", label:"Sat: Easy continuous run 30 min", dist:"\~3 mi"}
+      ]},
+      {week:4, title:"Week 4 - First 5K!", long:"3.1 mi race", runs:[
+        {id:"w4-tue", label:"Tue: Easy 25 min continuous", dist:"\~2.5 mi"},
+        {id:"w4-thu", label:"Thu: Easy 25 min continuous", dist:"\~2.5 mi"},
+        {id:"w4-sun", label:"Sun: 5K race or time trial", dist:"3.1 mi"}
+      ]},
+      {week:5, title:"Week 5 - Building consistency", long:"4 mi", runs:[
+        {id:"w5-tue", label:"Tue: Easy 30 min", dist:"\~3 mi"},
+        {id:"w5-thu", label:"Thu: Easy 30 min", dist:"\~3 mi"},
+        {id:"w5-sat", label:"Sat: Easy 40 min", dist:"\~4 mi"}
+      ]},
+      {week:6, title:"Week 6", long:"5 mi", runs:[
+        {id:"w6-tue", label:"Tue: Speed play 35 min + 4×30 sec fast", dist:"\~3.5 mi"},
+        {id:"w6-thu", label:"Thu: Fast-finish 30 min", dist:"\~3 mi"},
+        {id:"w6-sat", label:"Sat: Easy 45 min", dist:"\~4.5 mi"}
+      ]},
+      {week:7, title:"Week 7", long:"6 mi", runs:[
+        {id:"w7-tue", label:"Tue: Speed play 40 min", dist:"\~4 mi"},
+        {id:"w7-thu", label:"Thu: Fast-finish 35 min", dist:"\~3.5 mi"},
+        {id:"w7-sat", label:"Sat: Easy 60 min", dist:"\~6 mi"}
+      ]},
+      {week:8, title:"Week 8 - First 10K!", long:"6.2 mi race", runs:[
+        {id:"w8-tue", label:"Tue: Speed play 35 min", dist:"\~3.5 mi"},
+        {id:"w8-thu", label:"Thu: Fast-finish 30 min", dist:"\~3 mi"},
+        {id:"w8-sun", label:"Sun: 10K race or time trial", dist:"6.2 mi"}
+      ]},
+      {week:9, title:"Week 9 - 10K to Half", long:"6 mi", runs:[
+        {id:"w9-tue", label:"Tue: Easy 4 mi", dist:"4 mi"},
+        {id:"w9-thu", label:"Thu: Tempo 5 mi", dist:"5 mi"},
+        {id:"w9-sun", label:"Sun: Long 6 mi", dist:"6 mi"}
+      ]},
+      {week:10, title:"Week 10", long:"7 mi", runs:[
+        {id:"w10-tue", label:"Tue: Easy 5 mi", dist:"5 mi"},
+        {id:"w10-thu", label:"Thu: Tempo 5 mi", dist:"5 mi"},
+        {id:"w10-sun", label:"Sun: Long 7 mi", dist:"7 mi"}
+      ]},
+      {week:11, title:"Week 11", long:"8 mi", runs:[
+        {id:"w11-tue", label:"Tue: Easy 5 mi", dist:"5 mi"},
+        {id:"w11-thu", label:"Thu: Hill repeats 6 mi", dist:"6 mi"},
+        {id:"w11-sun", label:"Sun: Long 8 mi", dist:"8 mi"}
+      ]},
+      {week:12, title:"Week 12 - Recovery", long:"5 mi", runs:[
+        {id:"w12-tue", label:"Tue: Easy 4 mi", dist:"4 mi"},
+        {id:"w12-thu", label:"Thu: Easy 4 mi", dist:"4 mi"},
+        {id:"w12-sun", label:"Sun: Easy 5 mi", dist:"5 mi"}
+      ]},
+      {week:13, title:"Week 13", long:"10 mi", runs:[
+        {id:"w13-tue", label:"Tue: Easy 5 mi", dist:"5 mi"},
+        {id:"w13-thu", label:"Thu: Tempo 6 mi", dist:"6 mi"},
+        {id:"w13-sun", label:"Sun: Long 10 mi", dist:"10 mi"}
+      ]},
+      {week:14, title:"Week 14", long:"12 mi", runs:[
+        {id:"w14-tue", label:"Tue: Easy 6 mi", dist:"6 mi"},
+        {id:"w14-thu", label:"Thu: Tempo 7 mi", dist:"7 mi"},
+        {id:"w14-sun", label:"Sun: Long 12 mi", dist:"12 mi"}
+      ]},
+      {week:15, title:"Week 15 - Recovery", long:"8 mi", runs:[
+        {id:"w15-tue", label:"Tue: Easy 5 mi", dist:"5 mi"},
+        {id:"w15-thu", label:"Thu: Easy 5 mi", dist:"5 mi"},
+        {id:"w15-sun", label:"Sun: Long 8 mi", dist:"8 mi"}
+      ]},
+      {week:16, title:"Week 16 - Half Marathon!", long:"13.1 mi race", runs:[
+        {id:"w16-tue", label:"Tue: Easy 6 mi", dist:"6 mi"},
+        {id:"w16-thu", label:"Thu: Tempo 6 mi", dist:"6 mi"},
+        {id:"w16-sun", label:"Sun: Half Marathon race", dist:"13.1 mi"}
+      ]},
+      {week:17, title:"Week 17", long:"12 mi", runs:[
+        {id:"w17-tue", label:"Tue: Easy 6 mi", dist:"6 mi"},
+        {id:"w17-thu", label:"Thu: Tempo 7 mi", dist:"7 mi"},
+        {id:"w17-sun", label:"Sun: Long 12 mi", dist:"12 mi"}
+      ]},
+      {week:18, title:"Week 18", long:"14 mi", runs:[
+        {id:"w18-tue", label:"Tue: Easy 7 mi", dist:"7 mi"},
+        {id:"w18-thu", label:"Thu: Tempo 8 mi", dist:"8 mi"},
+        {id:"w18-sun", label:"Sun: Long 14 mi", dist:"14 mi"}
+      ]},
+      {week:19, title:"Week 19", long:"16 mi", runs:[
+        {id:"w19-tue", label:"Tue: Easy 7 mi", dist:"7 mi"},
+        {id:"w19-thu", label:"Thu: Tempo 8 mi", dist:"8 mi"},
+        {id:"w19-sun", label:"Sun: Long 16 mi", dist:"16 mi"}
+      ]},
+      {week:20, title:"Week 20 - Recovery", long:"10 mi", runs:[
+        {id:"w20-tue", label:"Tue: Easy 6 mi", dist:"6 mi"},
+        {id:"w20-thu", label:"Thu: Easy 6 mi", dist:"6 mi"},
+        {id:"w20-sun", label:"Sun: Long 10 mi", dist:"10 mi"}
+      ]},
+      {week:21, title:"Week 21", long:"18 mi", runs:[
+        {id:"w21-tue", label:"Tue: Easy 7 mi", dist:"7 mi"},
+        {id:"w21-thu", label:"Thu: Marathon-pace 8 mi", dist:"8 mi"},
+        {id:"w21-sun", label:"Sun: Long 18 mi", dist:"18 mi"}
+      ]},
+      {week:22, title:"Week 22 - Peak!", long:"20 mi", runs:[
+        {id:"w22-tue", label:"Tue: Easy 8 mi", dist:"8 mi"},
+        {id:"w22-thu", label:"Thu: Marathon-pace 8 mi", dist:"8 mi"},
+        {id:"w22-sun", label:"Sun: Peak Long 20 mi", dist:"20 mi"}
+      ]},
+      {week:23, title:"Week 23 - Recovery", long:"10 mi", runs:[
+        {id:"w23-tue", label:"Tue: Easy 6 mi", dist:"6 mi"},
+        {id:"w23-thu", label:"Thu: Easy 6 mi", dist:"6 mi"},
+        {id:"w23-sun", label:"Sun: Easy 10 mi", dist:"10 mi"}
+      ]},
+      {week:24, title:"Week 24 - RACE WEEK! 🏅", long:"26.2 mi", runs:[
         {id:"w24-race", label:"Sunday: MARATHON DAY - 26.2 miles", dist:"26.2 mi"}
       ]}
     ];
 
-    // Fill missing weeks with placeholder (in real code this is fully populated)
-    for(let w=3; w<=23; w++) {
-      if(!planData.find(p=>p.week===w)) {
-        planData.push({week:w, title:`Week ${w}`, long:`Long run ${Math.min(20, 6 + Math.floor((w-4)*0.8))} mi`, runs:[]});
-      }
-    }
-
     let startDate = new Date("2026-03-01");
+    let map, currentPolyline = null, routePoints = [], drawing = false;
+    let savedRoutes = JSON.parse(localStorage.getItem('savedRoutes') || '[]');
 
     function updateProgress() {
       const input = document.getElementById("startDate");
-      if(input.value) startDate = new Date(input.value);
+      if (input.value) startDate = new Date(input.value);
       
       const today = new Date();
-      const daysSinceStart = Math.floor((today - startDate) / (1000*60*60*24));
+      const daysSinceStart = Math.floor((today - startDate) / (86400000));
       let currentWeek = Math.min(24, Math.max(1, Math.floor(daysSinceStart / 7) + 1));
       
       document.getElementById("currentWeek").textContent = currentWeek;
       
       const raceDate = new Date(startDate);
-      raceDate.setDate(raceDate.getDate() + 168); // 24*7
-      const daysToRace = Math.max(0, Math.floor((raceDate - today) / (1000*60*60*24)));
+      raceDate.setDate(raceDate.getDate() + 168); // 24 weeks
+      const daysToRace = Math.max(0, Math.floor((raceDate - today) / 86400000));
       document.getElementById("daysToRace").textContent = daysToRace;
       
       const progress = Math.round((currentWeek / 24) * 100);
       document.getElementById("progressPct").textContent = progress + "%";
       document.getElementById("progressCircle").style.setProperty('--progress', progress + "%");
       
-      // Fake mileage estimate
-      const milesRun = Math.round(currentWeek * 15);
+      const milesRun = Math.round(currentWeek * 15.8);
       document.getElementById("milesRun").textContent = `${milesRun} / 380`;
       document.getElementById("milesBar").style.width = (milesRun / 380 * 100) + "%";
       
-      // Next long run
       const nextW = Math.min(24, currentWeek + 1);
       const nextLong = planData.find(p => p.week === nextW)?.long || "TBD";
       document.getElementById("nextLongRun").textContent = nextLong;
@@ -225,8 +352,8 @@
       const runsDiv = document.getElementById("modalRuns");
       runsDiv.innerHTML = "";
       
-      if(week.runs.length === 0) {
-        runsDiv.innerHTML = `<p class="text-gray-400">Full schedule for this week follows the same easy/long pattern. Check the Full Plan tab for details.</p>`;
+      if (week.runs.length === 0) {
+        runsDiv.innerHTML = `<p class="text-gray-400">Full schedule follows the easy/long pattern. Check the Full Plan tab for details.</p>`;
       } else {
         week.runs.forEach(run => {
           const checked = localStorage.getItem(run.id) === "true";
@@ -247,7 +374,6 @@
 
     function toggleRun(id, checked) {
       localStorage.setItem(id, checked);
-      updateProgress(); // refresh progress if needed
     }
 
     function closeModal() {
@@ -255,10 +381,13 @@
     }
 
     function switchTab(n) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      document.getElementById('tab'+n).classList.remove('hidden');
-      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active','border-green-500','text-green-500'));
-      document.querySelectorAll('.tab-btn')[n].classList.add('active','border-green-500','text-green-500');
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab'+n).classList.add('active');
+      document.querySelectorAll('.tab-btn').forEach((el,i) => {
+        if (i === n) el.classList.add('active');
+        else el.classList.remove('active');
+      });
+      if (n === 4) setTimeout(initRouteMap, 100);
     }
 
     function toggleDark() {
@@ -282,27 +411,135 @@
       alert("✅ Progress exported! Keep crushing it Joshua!");
     }
 
-    // Random motivational quote on load
-    const quotes = [
-      "The miracle isn't that I finished. The miracle is that I had the courage to start. — John Bingham",
-      "You are stronger than you think. 26.2 is waiting for you.",
-      "Fort Worth to Finish Line — let's do this!"
-    ];
-    console.log("%c" + quotes[Math.floor(Math.random()*quotes.length)], "color:#22c55e; font-size:14px");
+    // ===== MAP FUNCTIONS =====
+    function initRouteMap() {
+      if (map) return;
+      map = L.map('routeMap').setView([32.7688, -97.3093], 12); // Fort Worth
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
 
-    // Init
+      map.on('click', function(e) {
+        if (!drawing) return;
+        routePoints.push(e.latlng);
+        redrawPolyline();
+        updateCurrentDistance();
+      });
+    }
+
+    function redrawPolyline() {
+      if (currentPolyline) currentPolyline.remove();
+      if (routePoints.length > 0) {
+        currentPolyline = L.polyline(routePoints, { color: '#22c55e', weight: 6 }).addTo(map);
+      }
+    }
+
+    function updateCurrentDistance() {
+      let meters = 0;
+      for (let i = 1; i < routePoints.length; i++) {
+        meters += map.distance(routePoints[i-1], routePoints[i]);
+      }
+      const miles = (meters * 0.000621371).toFixed(2);
+      document.getElementById('currentDistance').textContent = miles + ' miles';
+    }
+
+    function startNewRoute() {
+      drawing = true;
+      routePoints = [];
+      if (currentPolyline) currentPolyline.remove();
+      document.getElementById('currentDistance').textContent = '0.0 miles';
+      alert("✅ Tap anywhere on the map to draw your route (like Strava). Zoom in for precision.");
+    }
+
+    function clearCurrentRoute() {
+      drawing = false;
+      routePoints = [];
+      if (currentPolyline) currentPolyline.remove();
+      currentPolyline = null;
+      document.getElementById('currentDistance').textContent = '0.0 miles';
+    }
+
+    function saveCurrentRoute() {
+      if (routePoints.length < 2) {
+        alert("Draw at least 2 points first!");
+        return;
+      }
+      const name = prompt("Name your route (e.g. Trinity Trails 12mi)", "My Run " + new Date().toLocaleDateString());
+      if (!name) return;
+      const meters = routePoints.reduce((sum, pt, i) => i === 0 ? 0 : sum + map.distance(routePoints[i-1], pt), 0);
+      const miles = (meters * 0.000621371).toFixed(1);
+
+      const route = {
+        id: Date.now(),
+        name: name,
+        date: new Date().toLocaleDateString(),
+        miles: miles,
+        coords: routePoints.map(p => [p.lat, p.lng])
+      };
+      savedRoutes.unshift(route);
+      localStorage.setItem('savedRoutes', JSON.stringify(savedRoutes));
+      renderSavedRoutes();
+      alert(`✅ Saved "${name}" — ${miles} miles!`);
+    }
+
+    function renderSavedRoutes() {
+      const container = document.getElementById('savedRoutesList');
+      container.innerHTML = '';
+      if (savedRoutes.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 italic">No routes saved yet. Build one above!</p>';
+        return;
+      }
+      savedRoutes.forEach((route, index) => {
+        const div = document.createElement('div');
+        div.className = 'bg-gray-800 rounded-2xl p-5 flex justify-between items-center';
+        div.innerHTML = `
+          <div>
+            <div class="font-semibold">${route.name}</div>
+            <div class="text-sm text-gray-400">${route.date} • ${route.miles} miles</div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="loadSavedRoute(${index}); event.stopImmediatePropagation()" class="px-5 py-2 bg-green-600 rounded-xl text-sm font-medium">Load on Map</button>
+            <button onclick="deleteRoute(${index}); event.stopImmediatePropagation()" class="px-4 py-2 text-red-400 hover:bg-gray-700 rounded-xl">🗑️</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function loadSavedRoute(index) {
+      const route = savedRoutes[index];
+      clearCurrentRoute();
+      routePoints = route.coords.map(c => L.latLng(c[0], c[1]));
+      redrawPolyline();
+      updateCurrentDistance();
+      map.fitBounds(routePoints);
+      switchTab(4);
+    }
+
+    function deleteRoute(index) {
+      if (confirm("Delete this route?")) {
+        savedRoutes.splice(index, 1);
+        localStorage.setItem('savedRoutes', JSON.stringify(savedRoutes));
+        renderSavedRoutes();
+      }
+    }
+
+    // Init everything
     window.onload = () => {
       document.getElementById("startDate").value = "2026-03-01";
       updateProgress();
       switchTab(0);
-      // Render full plan in tab1 (abbreviated here)
+
+      // Full Plan tab
       const fullPlanDiv = document.getElementById("fullPlan");
       planData.forEach(w => {
         const el = document.createElement("div");
         el.className = "bg-gray-900 p-6 rounded-3xl";
-        el.innerHTML = `<strong>Week ${w.week}:</strong> ${w.long} long run`;
+        el.innerHTML = `<strong>Week ${w.week}:</strong> ${w.title} — Long run ${w.long}`;
         fullPlanDiv.appendChild(el);
       });
+
+      renderSavedRoutes();
     };
   </script>
 </body>
