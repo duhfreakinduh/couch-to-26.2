@@ -16,7 +16,7 @@
     .tab-content.active { display: block; }
     .tab-btn.active { border-bottom: 2px solid #22c55e; color: #22c55e; }
     .live-dot { animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.7; } }
+    @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.3);opacity:0.7} }
   </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen">
@@ -25,15 +25,13 @@
     <!-- Header -->
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-4xl font-bold flex items-center gap-3">
-          <span class="text-green-500">🏃‍♂️</span> Joshua’s Couch to 26.2
-        </h1>
+        <h1 class="text-4xl font-bold flex items-center gap-3"><span class="text-green-500">🏃‍♂️</span> Joshua’s Couch to 26.2</h1>
         <p class="text-gray-400">Fort Worth • Full Strava-style Live GPS</p>
       </div>
       <button onclick="toggleDark()" class="p-3 bg-gray-800 rounded-xl"><i id="theme-icon" class="fas fa-moon text-xl"></i></button>
     </div>
 
-    <!-- Dashboard (unchanged) -->
+    <!-- Dashboard -->
     <div class="bg-gray-900 rounded-3xl p-8 mb-8">
       <div class="grid md:grid-cols-2 gap-8">
         <div>
@@ -66,24 +64,42 @@
       <button onclick="switchTab(4)" class="tab-btn px-6 py-3 font-medium text-gray-400 hover:text-white whitespace-nowrap">🗺️ Maps & Routes</button>
     </div>
 
-    <!-- Tab 0-3 (full content) -->
-    <div id="tab0" class="tab-content active"><div id="weekCards" class="grid md:grid-cols-2 gap-4"></div></div>
-    <div id="tab1" class="tab-content"><div class="space-y-6" id="fullPlan"></div></div>
+    <!-- Tab 0: Dashboard -->
+    <div id="tab0" class="tab-content active">
+      <div id="weekCards" class="grid md:grid-cols-2 gap-4"></div>
+    </div>
+
+    <!-- Tab 1: Full Plan -->
+    <div id="tab1" class="tab-content">
+      <div class="space-y-6" id="fullPlan"></div>
+    </div>
+
+    <!-- Tab 2: Strength -->
     <div id="tab2" class="tab-content">
       <div class="bg-gray-900 rounded-3xl p-8 space-y-8">
         <h3 class="text-2xl font-bold">2×/week Strength (20 min)</h3>
         <div class="grid md:grid-cols-2 gap-6">
-          <div class="space-y-6"><div><strong>Glute Bridges</strong> 3×12-15</div><div><strong>Single-leg RDL or Lunges</strong> 3×8/leg</div><div><strong>Side Planks / Bird Dogs</strong> 3×30 sec/side</div></div>
-          <div class="space-y-6"><div><strong>Squats or Step-ups</strong> 3×10-12</div><div><strong>Calf Raises</strong> 3×15</div><p class="text-sm text-gray-400">Do on non-run or easy days.</p></div>
+          <div class="space-y-6">
+            <div><strong>Glute Bridges</strong> 3×12-15</div>
+            <div><strong>Single-leg RDL or Lunges</strong> 3×8/leg</div>
+            <div><strong>Side Planks / Bird Dogs</strong> 3×30 sec/side</div>
+          </div>
+          <div class="space-y-6">
+            <div><strong>Squats or Step-ups</strong> 3×10-12</div>
+            <div><strong>Calf Raises</strong> 3×15</div>
+            <p class="text-sm text-gray-400">Do on non-run or easy days. Foam roll after!</p>
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- Tab 3: DFW Tips -->
     <div id="tab3" class="tab-content">
       <div class="bg-gray-900 rounded-3xl p-8 prose prose-invert">
         <h3 class="text-2xl">DFW Running Tips</h3>
         <ul class="list-disc pl-5 space-y-3">
           <li>Run before 8 AM or after 7 PM — Texas heat is no joke</li>
-          <li>Join <a href="https://dallasrunningclub.com" class="text-green-400">Dallas Running Club</a></li>
+          <li>Join <a href="https://dallasrunningclub.com" class="text-green-400">Dallas Running Club</a> beginner groups</li>
           <li>Target race: BMW Dallas Marathon (Dec) or Cowtown (Feb)</li>
           <li>Carry water + electrolytes every run >45 min</li>
           <li>Pain ≠ soreness → stop and see PT</li>
@@ -91,12 +107,12 @@
       </div>
     </div>
 
-    <!-- Tab 4: FULL STRAVA-LIKE MAP -->
+    <!-- Tab 4: BEST Strava-style Live GPS -->
     <div id="tab4" class="tab-content">
       <div class="bg-gray-900 rounded-3xl p-8">
-        <h3 class="text-3xl font-bold mb-2">🗺️ Live GPS • Strava Style</h3>
-        <p class="text-gray-400 mb-4">Enable GPS → always see blue dot. Start Recording for green path.</p>
-        <div id="mapStatus" class="text-sm text-yellow-400 mb-4">Tap Enable GPS to begin</div>
+        <h3 class="text-3xl font-bold mb-2 flex items-center gap-3">🗺️ Live GPS • Strava Style</h3>
+        <p class="text-gray-400 mb-4">Enable GPS → blue dot always shows. Then record your exact path.</p>
+        <div id="mapStatus" class="text-sm text-yellow-400 mb-4">Tap Enable Live GPS to start</div>
         
         <div id="routeMap" class="rounded-3xl overflow-hidden shadow-2xl"></div>
         
@@ -111,7 +127,7 @@
 
         <div class="mt-6 flex items-center justify-between">
           <label class="flex items-center gap-2 text-sm font-medium">
-            <input type="checkbox" id="followToggle" onchange="toggleFollow()" class="accent-green-500"> Follow Me
+            <input type="checkbox" id="followToggle" onchange="toggleFollow()" checked class="accent-green-500"> Follow Me
           </label>
           <span id="liveDistance" class="text-2xl font-bold text-green-400">0.0 mi</span>
         </div>
@@ -125,7 +141,7 @@
 
     <!-- Footer -->
     <div class="text-center text-gray-500 text-sm mt-12">
-      Built for Joshua in Fort Worth • Strava-style live tracking • You got this! 💪<br>
+      Built for Joshua in Fort Worth • Best version yet • You got this! 💪<br>
       <button onclick="exportLog()" class="underline">Export log</button>
     </div>
   </div>
@@ -140,15 +156,37 @@
   </div>
 
   <script>
-    // FULL PLAN DATA + ALL FUNCTIONS (self-contained)
-    const planData = [ /* exact same 24-week array as previous */ ];
-    // (abbreviated here for message length — copy the full planData from your last working version or use the one below)
-    // Weeks 1-8 full, 9-24 summarized for space
-    const fullPlanData = [ /* paste your previous planData here */ ];
+    // FULL 24-WEEK PLAN
+    const planData = [
+      {week:1,title:"Week 1 - Couch to 5K Start",long:"25 min walk/run",runs:[{id:"w1-tue",label:"Tue: Walk/Run 20 min (1 min run / 2 min walk)",dist:"\~2 mi"},{id:"w1-thu",label:"Thu: Walk/Run 20 min",dist:"\~2 mi"},{id:"w1-sat",label:"Sat: Walk/Run 25 min",dist:"\~2.5 mi"}]},
+      {week:2,title:"Week 2",long:"30 min",runs:[{id:"w2-tue",label:"Tue: Walk/Run 25 min (1/1)",dist:"\~2.5 mi"},{id:"w2-thu",label:"Thu: Walk/Run 25 min",dist:"\~2.5 mi"},{id:"w2-sat",label:"Sat: Walk/Run 30 min",dist:"\~3 mi"}]},
+      {week:3,title:"Week 3",long:"30 min continuous",runs:[{id:"w3-tue",label:"Tue: 1.5 min run / 30 sec walk",dist:"\~2.5 mi"},{id:"w3-thu",label:"Thu: same",dist:"\~2.5 mi"},{id:"w3-sat",label:"Sat: Continuous 30 min",dist:"\~3 mi"}]},
+      {week:4,title:"Week 4 - First 5K!",long:"3.1 mi",runs:[{id:"w4-tue",label:"Tue: Easy 25 min",dist:"2.5 mi"},{id:"w4-thu",label:"Thu: Easy 25 min",dist:"2.5 mi"},{id:"w4-sun",label:"Sun: 5K race or time trial",dist:"3.1 mi"}]},
+      {week:5,title:"Week 5",long:"4 mi",runs:[{id:"w5-tue",label:"Tue: Easy 30 min",dist:"3 mi"},{id:"w5-thu",label:"Thu: Easy 30 min",dist:"3 mi"},{id:"w5-sat",label:"Sat: Easy 40 min",dist:"4 mi"}]},
+      {week:6,title:"Week 6",long:"5 mi",runs:[{id:"w6-tue",label:"Tue: Speed play 35 min + 4×30 sec",dist:"3.5 mi"},{id:"w6-thu",label:"Thu: Fast-finish 30 min",dist:"3 mi"},{id:"w6-sat",label:"Sat: Easy 45 min",dist:"4.5 mi"}]},
+      {week:7,title:"Week 7",long:"6 mi",runs:[{id:"w7-tue",label:"Tue: Speed play 40 min",dist:"4 mi"},{id:"w7-thu",label:"Thu: Fast-finish 35 min",dist:"3.5 mi"},{id:"w7-sat",label:"Sat: Easy 60 min",dist:"6 mi"}]},
+      {week:8,title:"Week 8 - First 10K!",long:"6.2 mi",runs:[{id:"w8-tue",label:"Tue: Speed play 35 min",dist:"3.5 mi"},{id:"w8-thu",label:"Thu: Fast-finish 30 min",dist:"3 mi"},{id:"w8-sun",label:"Sun: 10K race or time trial",dist:"6.2 mi"}]},
+      {week:9,title:"Week 9",long:"6 mi",runs:[{id:"w9-tue",label:"Tue: Easy 4 mi",dist:"4 mi"},{id:"w9-thu",label:"Thu: Tempo 5 mi",dist:"5 mi"},{id:"w9-sun",label:"Sun: Long 6 mi",dist:"6 mi"}]},
+      {week:10,title:"Week 10",long:"7 mi",runs:[{id:"w10-tue",label:"Tue: Easy 5 mi",dist:"5 mi"},{id:"w10-thu",label:"Thu: Tempo 5 mi",dist:"5 mi"},{id:"w10-sun",label:"Sun: Long 7 mi",dist:"7 mi"}]},
+      {week:11,title:"Week 11",long:"8 mi",runs:[{id:"w11-tue",label:"Tue: Easy 5 mi",dist:"5 mi"},{id:"w11-thu",label:"Thu: Hill repeats 6 mi",dist:"6 mi"},{id:"w11-sun",label:"Sun: Long 8 mi",dist:"8 mi"}]},
+      {week:12,title:"Week 12 - Recovery",long:"5 mi",runs:[{id:"w12-tue",label:"Tue: Easy 4 mi",dist:"4 mi"},{id:"w12-thu",label:"Thu: Easy 4 mi",dist:"4 mi"},{id:"w12-sun",label:"Sun: Easy 5 mi",dist:"5 mi"}]},
+      {week:13,title:"Week 13",long:"10 mi",runs:[{id:"w13-tue",label:"Tue: Easy 5 mi",dist:"5 mi"},{id:"w13-thu",label:"Thu: Tempo 6 mi",dist:"6 mi"},{id:"w13-sun",label:"Sun: Long 10 mi",dist:"10 mi"}]},
+      {week:14,title:"Week 14",long:"12 mi",runs:[{id:"w14-tue",label:"Tue: Easy 6 mi",dist:"6 mi"},{id:"w14-thu",label:"Thu: Tempo 7 mi",dist:"7 mi"},{id:"w14-sun",label:"Sun: Long 12 mi",dist:"12 mi"}]},
+      {week:15,title:"Week 15 - Recovery",long:"8 mi",runs:[{id:"w15-tue",label:"Tue: Easy 5 mi",dist:"5 mi"},{id:"w15-thu",label:"Thu: Easy 5 mi",dist:"5 mi"},{id:"w15-sun",label:"Sun: Long 8 mi",dist:"8 mi"}]},
+      {week:16,title:"Week 16 - Half Marathon!",long:"13.1 mi",runs:[{id:"w16-tue",label:"Tue: Easy 6 mi",dist:"6 mi"},{id:"w16-thu",label:"Thu: Tempo 6 mi",dist:"6 mi"},{id:"w16-sun",label:"Sun: Half Marathon race",dist:"13.1 mi"}]},
+      {week:17,title:"Week 17",long:"12 mi",runs:[{id:"w17-tue",label:"Tue: Easy 6 mi",dist:"6 mi"},{id:"w17-thu",label:"Thu: Tempo 7 mi",dist:"7 mi"},{id:"w17-sun",label:"Sun: Long 12 mi",dist:"12 mi"}]},
+      {week:18,title:"Week 18",long:"14 mi",runs:[{id:"w18-tue",label:"Tue: Easy 7 mi",dist:"7 mi"},{id:"w18-thu",label:"Thu: Tempo 8 mi",dist:"8 mi"},{id:"w18-sun",label:"Sun: Long 14 mi",dist:"14 mi"}]},
+      {week:19,title:"Week 19",long:"16 mi",runs:[{id:"w19-tue",label:"Tue: Easy 7 mi",dist:"7 mi"},{id:"w19-thu",label:"Thu: Tempo 8 mi",dist:"8 mi"},{id:"w19-sun",label:"Sun: Long 16 mi",dist:"16 mi"}]},
+      {week:20,title:"Week 20 - Recovery",long:"10 mi",runs:[{id:"w20-tue",label:"Tue: Easy 6 mi",dist:"6 mi"},{id:"w20-thu",label:"Thu: Easy 6 mi",dist:"6 mi"},{id:"w20-sun",label:"Sun: Long 10 mi",dist:"10 mi"}]},
+      {week:21,title:"Week 21",long:"18 mi",runs:[{id:"w21-tue",label:"Tue: Easy 7 mi",dist:"7 mi"},{id:"w21-thu",label:"Thu: Marathon-pace 8 mi",dist:"8 mi"},{id:"w21-sun",label:"Sun: Long 18 mi",dist:"18 mi"}]},
+      {week:22,title:"Week 22 - Peak!",long:"20 mi",runs:[{id:"w22-tue",label:"Tue: Easy 8 mi",dist:"8 mi"},{id:"w22-thu",label:"Thu: Marathon-pace 8 mi",dist:"8 mi"},{id:"w22-sun",label:"Sun: Peak Long 20 mi",dist:"20 mi"}]},
+      {week:23,title:"Week 23 - Recovery",long:"10 mi",runs:[{id:"w23-tue",label:"Tue: Easy 6 mi",dist:"6 mi"},{id:"w23-thu",label:"Thu: Easy 6 mi",dist:"6 mi"},{id:"w23-sun",label:"Sun: Easy 10 mi",dist:"10 mi"}]},
+      {week:24,title:"Week 24 - RACE WEEK! 🏅",long:"26.2 mi",runs:[{id:"w24-race",label:"Sunday: MARATHON DAY - 26.2 miles",dist:"26.2 mi"}]}
+    ];
 
     let startDate = new Date("2026-03-01");
     let map = null;
-    let locationMarker = null;   // always-on blue dot
+    let locationMarker = null;   // blue dot - always visible
     let recordingPolyline = null;
     let recordingPoints = [];
     let isRecording = false;
@@ -157,45 +195,148 @@
     let watchId = null;
     let savedRoutes = JSON.parse(localStorage.getItem('savedRoutes') || '[]');
 
-    // ... (all dashboard/progress/week modal functions exactly as in previous full version)
-    // For brevity I include only the map part — the rest is identical to your last working code
+    function updateProgress() {
+      const input = document.getElementById("startDate");
+      if (input.value) startDate = new Date(input.value);
+      const today = new Date();
+      const daysSince = Math.floor((today - startDate) / 86400000);
+      let currentWeek = Math.min(24, Math.max(1, Math.floor(daysSince / 7) + 1));
+      document.getElementById("currentWeek").textContent = currentWeek;
+      const raceDate = new Date(startDate); raceDate.setDate(raceDate.getDate() + 168);
+      document.getElementById("daysToRace").textContent = Math.max(0, Math.floor((raceDate - today) / 86400000));
+      const progress = Math.round((currentWeek / 24) * 100);
+      document.getElementById("progressPct").textContent = progress + "%";
+      document.getElementById("progressCircle").style.setProperty('--progress', progress + "%");
+      const miles = Math.round(currentWeek * 15.8);
+      document.getElementById("milesRun").textContent = `${miles} / 380`;
+      document.getElementById("milesBar").style.width = (miles / 380 * 100) + "%";
+      const nextLong = planData.find(p => p.week === currentWeek + 1)?.long || "TBD";
+      document.getElementById("nextLongRun").textContent = nextLong;
+      renderWeekCards(currentWeek);
+    }
+
+    function renderWeekCards(highlightWeek) {
+      const container = document.getElementById("weekCards");
+      container.innerHTML = "";
+      planData.forEach(w => {
+        const isCurrent = w.week === highlightWeek;
+        const card = document.createElement("div");
+        card.className = `bg-gray-900 rounded-3xl p-6 cursor-pointer hover:ring-2 hover:ring-green-500 transition ${isCurrent ? 'ring-2 ring-green-500' : ''}`;
+        card.innerHTML = `<div class="flex justify-between"><div><div class="text-green-400 font-mono">WEEK \( {w.week}</div><div class="font-semibold"> \){w.title}</div></div><div class="text-right"><div class="text-sm text-gray-400">Long run</div><div class="font-bold">${w.long}</div></div></div>`;
+        card.onclick = () => showWeekModal(w);
+        container.appendChild(card);
+      });
+    }
+
+    function showWeekModal(week) {
+      document.getElementById("modalTitle").textContent = week.title;
+      const runsDiv = document.getElementById("modalRuns");
+      runsDiv.innerHTML = "";
+      if (week.runs && week.runs.length) {
+        week.runs.forEach(run => {
+          const checked = localStorage.getItem(run.id) === "true";
+          const div = document.createElement("div");
+          div.className = "flex items-center gap-4 bg-gray-800 p-4 rounded-2xl";
+          div.innerHTML = `<input type="checkbox" \( {checked ? 'checked' : ''} onchange="toggleRun(' \){run.id}', this.checked)" class="w-6 h-6 accent-green-500"><div class="flex-1"><div>\( {run.label}</div><div class="text-xs text-gray-400"> \){run.dist}</div></div>`;
+          runsDiv.appendChild(div);
+        });
+      } else {
+        runsDiv.innerHTML = `<p class="text-gray-400">Long run highlighted. Check Full Plan tab for details.</p>`;
+      }
+      document.getElementById("modal").classList.remove("hidden");
+    }
+
+    function toggleRun(id, checked) { localStorage.setItem(id, checked); }
+    function closeModal() { document.getElementById("modal").classList.add("hidden"); }
+
+    function switchTab(n) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab'+n).classList.add('active');
+      document.querySelectorAll('.tab-btn').forEach((el,i) => i===n ? el.classList.add('active') : el.classList.remove('active'));
+      if (n === 4) setTimeout(() => { initRouteMap(); if (map) map.invalidateSize(); }, 400);
+    }
+
+    function toggleDark() {
+      document.documentElement.classList.toggle("dark");
+      const icon = document.getElementById("theme-icon");
+      icon.classList.toggle("fa-moon");
+      icon.classList.toggle("fa-sun");
+    }
+
+    function exportLog() {
+      let log = {};
+      for(let i=0; i<localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if(key.startsWith("w")) log[key] = localStorage.getItem(key);
+      }
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(log, null, 2));
+      const dl = document.createElement("a");
+      dl.href = dataStr; dl.download = "my-marathon-progress.json"; dl.click();
+      alert("✅ Progress exported! Keep crushing it Joshua!");
+    }
+
+    // MAP & LIVE GPS FUNCTIONS
+    function initRouteMap() {
+      if (map) { map.invalidateSize(); return; }
+      map = L.map('routeMap').setView([32.7688, -97.3093], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '© OpenStreetMap'}).addTo(map);
+      document.getElementById("mapStatus").textContent = "Map ready ✅ Enable GPS for blue dot";
+      map.on('click', e => {
+        if (!isRecording) {
+          recordingPoints.push(e.latlng);
+          redrawRecordingLine();
+          updateLiveDistance();
+        }
+      });
+    }
+
+    function redrawRecordingLine() {
+      if (recordingPolyline) recordingPolyline.remove();
+      if (recordingPoints.length > 0) recordingPolyline = L.polyline(recordingPoints, {color: '#22c55e', weight: 7}).addTo(map);
+    }
+
+    function updateLiveDistance() {
+      let meters = 0;
+      for (let i = 1; i < recordingPoints.length; i++) meters += map.distance(recordingPoints[i-1], recordingPoints[i]);
+      document.getElementById('liveDistance').textContent = (meters * 0.000621371).toFixed(2) + " mi";
+    }
 
     function enableLiveGPS() {
       document.getElementById('enableBtn').classList.add('hidden');
       document.getElementById('recordBtn').classList.remove('hidden');
-      document.getElementById('mapStatus').textContent = 'Requesting location...';
+      document.getElementById('mapStatus').textContent = "Requesting location permission...";
       if (watchId) return;
       watchId = navigator.geolocation.watchPosition(
         pos => {
           const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude);
           if (!locationMarker) {
-            locationMarker = L.circleMarker(latlng, {radius: 12, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 1, className: 'live-dot'}).addTo(map);
+            locationMarker = L.circleMarker(latlng, {radius: 12, color: '#3b82f6', fillOpacity: 1, className: 'live-dot'}).addTo(map);
           } else {
             locationMarker.setLatLng(latlng);
           }
           if (followMe && map) map.flyTo(latlng, map.getZoom(), {animate: true});
-          document.getElementById('mapStatus').textContent = 'Live GPS active • Blue dot always on';
+          document.getElementById('mapStatus').textContent = "✅ Live GPS active • Blue dot always on";
         },
-        err => { alert('GPS error: ' + err.message); },
-        { enableHighAccuracy: true, timeout: 10000 }
+        err => alert("GPS error: " + err.message + "\n\nAllow location in browser settings for this site."),
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     }
 
     function startRecording() {
       isRecording = true;
       isPaused = false;
+      recordingPoints = [];
+      if (recordingPolyline) recordingPolyline.remove();
       document.getElementById('recordBtn').classList.add('hidden');
       document.getElementById('pauseBtn').classList.remove('hidden');
       document.getElementById('stopBtn').classList.remove('hidden');
-      recordingPoints = [];
-      if (recordingPolyline) recordingPolyline.remove();
-      document.getElementById('mapStatus').textContent = 'Recording active • Move to trace path';
+      document.getElementById('mapStatus').textContent = "Recording active • Move to draw green path";
     }
 
     function pauseRecording() {
       isPaused = !isPaused;
-      document.getElementById('pauseBtn').textContent = isPaused ? '▶️ Resume' : '⏸️ Pause';
-      document.getElementById('mapStatus').textContent = isPaused ? 'Recording paused' : 'Recording resumed';
+      document.getElementById('pauseBtn').innerHTML = isPaused ? '▶️ Resume' : '⏸️ Pause';
+      document.getElementById('mapStatus').textContent = isPaused ? "Recording paused" : "Recording resumed";
     }
 
     function stopRecording() {
@@ -203,42 +344,84 @@
       document.getElementById('pauseBtn').classList.add('hidden');
       document.getElementById('stopBtn').classList.add('hidden');
       document.getElementById('recordBtn').classList.remove('hidden');
-      if (confirm('Save this recorded path?')) saveCurrentRoute(true);
-      document.getElementById('mapStatus').textContent = 'Recording stopped';
+      if (confirm("Save this exact path?")) saveCurrentRoute();
+      document.getElementById('mapStatus').textContent = "Recording stopped";
     }
 
     function newPath() {
       recordingPoints = [];
       if (recordingPolyline) recordingPolyline.remove();
-      document.getElementById('liveDistance').textContent = '0.0 mi';
-      document.getElementById('mapStatus').textContent = 'New path started • Blue dot still active';
+      document.getElementById('liveDistance').textContent = "0.0 mi";
+      document.getElementById('mapStatus').textContent = "New path started • Blue dot still active";
     }
 
     function toggleFollow() {
       followMe = document.getElementById('followToggle').checked;
     }
 
-    function saveCurrentRoute(fromLive) {
-      const pts = fromLive ? recordingPoints : [];
-      if (pts.length < 2) { alert("Record at least a short path!"); return; }
-      const name = prompt("Name this route", "My Run " + new Date().toLocaleDateString());
+    function saveCurrentRoute() {
+      if (recordingPoints.length < 2) { alert("Record at least a short path!"); return; }
+      const name = prompt("Name your route (e.g. Trinity Trails 8mi)", "My Run " + new Date().toLocaleDateString());
       if (!name) return;
-      let m = 0;
-      for (let i = 1; i < pts.length; i++) m += map.distance(pts[i-1], pts[i]);
-      const miles = (m * 0.000621371).toFixed(1);
-      const route = {id: Date.now(), name, date: new Date().toLocaleDateString(), miles, coords: pts.map(p => [p.lat, p.lng])};
+      let meters = 0;
+      for (let i = 1; i < recordingPoints.length; i++) meters += map.distance(recordingPoints[i-1], recordingPoints[i]);
+      const miles = (meters * 0.000621371).toFixed(1);
+      const route = {id: Date.now(), name, date: new Date().toLocaleDateString(), miles, coords: recordingPoints.map(p => [p.lat, p.lng])};
       savedRoutes.unshift(route);
       localStorage.setItem('savedRoutes', JSON.stringify(savedRoutes));
       renderSavedRoutes();
       alert(`✅ Saved "${name}" — ${miles} miles!`);
     }
 
-    // (All other functions: initRouteMap, switchTab, updateProgress, renderWeekCards, renderSavedRoutes, loadSavedRoute, deleteRoute, refreshMap, toggleDark, exportLog, etc. are identical to your previous full code)
+    function renderSavedRoutes() {
+      const container = document.getElementById("savedRoutesList");
+      container.innerHTML = savedRoutes.length ? "" : '<p class="text-gray-500 italic">No routes saved yet. Record one above!</p>';
+      savedRoutes.forEach((route, index) => {
+        const div = document.createElement("div");
+        div.className = "bg-gray-800 rounded-2xl p-5 flex justify-between items-center";
+        div.innerHTML = `<div><div class="font-semibold">\( {route.name}</div><div class="text-sm text-gray-400"> \){route.date} • \( {route.miles} mi</div></div><div class="flex gap-2"><button onclick="loadSavedRoute( \){index});event.stopImmediatePropagation()" class="px-5 py-2 bg-green-600 rounded-xl text-sm font-medium">Load on Map</button><button onclick="deleteRoute(${index});event.stopImmediatePropagation()" class="px-4 py-2 text-red-400">🗑️</button></div>`;
+        container.appendChild(div);
+      });
+    }
 
+    function loadSavedRoute(index) {
+      const route = savedRoutes[index];
+      recordingPoints = route.coords.map(c => L.latLng(c[0], c[1]));
+      redrawRecordingLine();
+      updateLiveDistance();
+      if (map) map.fitBounds(recordingPoints);
+      switchTab(4);
+    }
+
+    function deleteRoute(index) {
+      if (confirm("Delete this route?")) {
+        savedRoutes.splice(index, 1);
+        localStorage.setItem('savedRoutes', JSON.stringify(savedRoutes));
+        renderSavedRoutes();
+      }
+    }
+
+    function refreshMap() {
+      if (map) map.invalidateSize();
+      else initRouteMap();
+      document.getElementById("mapStatus").textContent = "Map refreshed ✅";
+    }
+
+    // INIT
     window.onload = () => {
-      // your original init code + renderSavedRoutes()
+      document.getElementById("startDate").value = "2026-03-01";
       updateProgress();
       switchTab(0);
+
+      // Full Plan tab
+      const fullPlanDiv = document.getElementById("fullPlan");
+      planData.forEach(w => {
+        const el = document.createElement("div");
+        el.className = "bg-gray-900 p-6 rounded-3xl";
+        el.innerHTML = `<strong>Week ${w.week}:</strong> ${w.title} — Long run ${w.long}`;
+        fullPlanDiv.appendChild(el);
+      });
+
       renderSavedRoutes();
     };
   </script>
