@@ -28,21 +28,22 @@
     <div class="flex justify-between items-center mb-8">
       <div>
         <h1 class="text-4xl font-bold flex items-center gap-3"><span class="text-green-500">🏃‍♂️</span> Joshua’s Fort Worth Run Tracker</h1>
-        <p class="text-gray-400">Live GPS • Record any route • Save & reload forever</p>
+        <p class="text-gray-400">Live GPS + Manual Path Drawing • Save any route</p>
       </div>
       <button onclick="toggleDark()" class="p-3 bg-gray-800 rounded-xl"><i id="theme-icon" class="fas fa-moon text-xl"></i></button>
     </div>
 
     <!-- Map -->
     <div class="bg-gray-900 rounded-3xl p-4 mb-6">
-      <div id="mapStatus" class="text-sm font-medium text-yellow-400 mb-3 text-center">Tap Enable Live GPS to start</div>
+      <div id="mapStatus" class="text-sm font-medium text-yellow-400 mb-3 text-center">Tap Enable Live GPS to begin</div>
       <div id="routeMap" class="rounded-3xl overflow-hidden shadow-2xl"></div>
     </div>
 
     <!-- Controls -->
     <div class="flex flex-wrap gap-3 mb-8">
       <button onclick="enableLiveGPS()" id="enableBtn" class="flex-1 bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-bold text-lg">📍 Enable Live GPS</button>
-      <button onclick="startRecording()" id="recordBtn" class="flex-1 bg-green-500 hover:bg-green-600 py-4 rounded-2xl font-bold text-lg hidden">▶️ Start Recording</button>
+      <button onclick="startRecording()" id="recordBtn" class="flex-1 bg-green-500 hover:bg-green-600 py-4 rounded-2xl font-bold text-lg hidden">▶️ Start Live Recording</button>
+      <button onclick="startManualDraw()" id="manualBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-500 py-4 rounded-2xl font-bold text-lg">✍️ Manual Draw Mode</button>
       <button onclick="pauseRecording()" id="pauseBtn" class="flex-1 bg-yellow-500 hover:bg-yellow-600 py-4 rounded-2xl font-bold text-lg hidden">⏸️ Pause</button>
       <button onclick="stopRecording()" id="stopBtn" class="flex-1 bg-red-500 hover:bg-red-600 py-4 rounded-2xl font-bold text-lg hidden">⏹️ Finish & Save</button>
       <button onclick="clearLine()" class="flex-1 bg-gray-700 hover:bg-gray-600 py-4 rounded-2xl font-bold text-lg">Clear Line</button>
@@ -66,7 +67,7 @@
 
     <!-- Footer -->
     <div class="text-center text-gray-500 text-sm mt-12">
-      Built for Joshua in Fort Worth • Add to home screen for quick access • Let's run! 🏃‍♂️<br>
+      Built for Joshua in Fort Worth • Tap to draw manual paths or use live GPS • Add to home screen!<br>
       <button onclick="exportLog()" class="underline mt-2">Export all saved routes</button>
     </div>
   </div>
@@ -77,6 +78,7 @@
     let recordingPolyline = null;
     let recordingPoints = [];
     let isRecording = false;
+    let isManualDraw = false;
     let isPaused = false;
     let followMe = true;
     let watchId = null;
@@ -84,13 +86,13 @@
 
     function initMap() {
       if (map) { map.invalidateSize(); return; }
-      map = L.map('routeMap').setView([32.7688, -97.3093], 13); // Fort Worth
+      map = L.map('routeMap').setView([32.7688, -97.3093], 13);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
       }).addTo(map);
 
       map.on('click', e => {
-        if (!isRecording) {
+        if (isManualDraw || (isRecording && !isPaused)) {
           recordingPoints.push(e.latlng);
           redrawRecordingLine();
           updateLiveDistance();
@@ -101,20 +103,14 @@
     function enableLiveGPS() {
       document.getElementById('enableBtn').classList.add('hidden');
       document.getElementById('recordBtn').classList.remove('hidden');
-      document.getElementById('mapStatus').textContent = "Requesting location permission...";
+      document.getElementById('manualBtn').classList.add('hidden');
+      document.getElementById('mapStatus').textContent = "Requesting location...";
       if (watchId) return;
       watchId = navigator.geolocation.watchPosition(
         pos => {
           const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude);
           if (!locationMarker) {
-            locationMarker = L.circleMarker(latlng, {
-              radius: 11,
-              color: '#3b82f6',
-              fillColor: '#3b82f6',
-              fillOpacity: 1,
-              weight: 5,
-              className: 'live-dot'
-            }).addTo(map);
+            locationMarker = L.circleMarker(latlng, {radius: 11, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 1, weight: 5, className: 'live-dot'}).addTo(map);
           } else {
             locationMarker.setLatLng(latlng);
           }
@@ -133,35 +129,46 @@
 
     function startRecording() {
       isRecording = true;
+      isManualDraw = false;
       isPaused = false;
       recordingPoints = [];
       if (recordingPolyline) recordingPolyline.remove();
       document.getElementById('recordBtn').classList.add('hidden');
       document.getElementById('pauseBtn').classList.remove('hidden');
       document.getElementById('stopBtn').classList.remove('hidden');
-      document.getElementById('mapStatus').textContent = "Recording active — move to draw green path";
+      document.getElementById('mapStatus').textContent = "Live recording active — move to draw green path";
+    }
+
+    function startManualDraw() {
+      isManualDraw = true;
+      isRecording = false;
+      recordingPoints = [];
+      if (recordingPolyline) recordingPolyline.remove();
+      document.getElementById('mapStatus').textContent = "Manual draw mode — tap the map to create your path";
     }
 
     function pauseRecording() {
       isPaused = !isPaused;
       document.getElementById('pauseBtn').innerHTML = isPaused ? '▶️ Resume' : '⏸️ Pause';
-      document.getElementById('mapStatus').textContent = isPaused ? "Paused" : "Recording resumed";
+      document.getElementById('mapStatus').textContent = isPaused ? "Recording paused" : "Recording resumed";
     }
 
     function stopRecording() {
       isRecording = false;
+      isManualDraw = false;
       document.getElementById('pauseBtn').classList.add('hidden');
       document.getElementById('stopBtn').classList.add('hidden');
       document.getElementById('recordBtn').classList.remove('hidden');
-      if (confirm("Save this exact route?")) saveCurrentRoute();
-      document.getElementById('mapStatus').textContent = "Recording finished";
+      document.getElementById('manualBtn').classList.remove('hidden');
+      if (confirm("Save this path?")) saveCurrentRoute();
+      document.getElementById('mapStatus').textContent = "Path saved or discarded";
     }
 
     function clearLine() {
       recordingPoints = [];
       if (recordingPolyline) recordingPolyline.remove();
       document.getElementById('liveDistance').textContent = "0.0 mi";
-      document.getElementById('mapStatus').textContent = "Line cleared • Pulsing dot still active";
+      document.getElementById('mapStatus').textContent = "Line cleared — tap again or start new recording";
     }
 
     function centerOnMe() {
@@ -184,8 +191,8 @@
     }
 
     function saveCurrentRoute() {
-      if (recordingPoints.length < 3) { alert("Record a bit more!"); return; }
-      const name = prompt("Name this route (e.g. Trinity Trails 8mi Loop)", "Fort Worth Run - " + new Date().toLocaleDateString());
+      if (recordingPoints.length < 3) { alert("Make a longer path!"); return; }
+      const name = prompt("Name this route", "Fort Worth Run - " + new Date().toLocaleDateString());
       if (!name) return;
       let meters = 0;
       for (let i = 1; i < recordingPoints.length; i++) meters += map.distance(recordingPoints[i-1], recordingPoints[i]);
@@ -199,7 +206,7 @@
 
     function renderSavedRoutes() {
       const container = document.getElementById("savedRoutesList");
-      container.innerHTML = savedRoutes.length ? "" : '<p class="text-gray-500 italic">No routes saved yet. Record one above!</p>';
+      container.innerHTML = savedRoutes.length ? "" : '<p class="text-gray-500 italic">No routes saved yet. Draw or record one above!</p>';
       savedRoutes.forEach((route, index) => {
         const div = document.createElement("div");
         div.className = "bg-gray-800 rounded-2xl p-5 flex justify-between items-center";
@@ -234,17 +241,15 @@
     function exportLog() {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(savedRoutes, null, 2));
       const dl = document.createElement("a");
-      dl.href = dataStr;
-      dl.download = "my-saved-routes.json";
-      dl.click();
-      alert("✅ All saved routes exported!");
+      dl.href = dataStr; dl.download = "my-saved-routes.json"; dl.click();
+      alert("✅ All routes exported!");
     }
 
     // INIT
     window.onload = () => {
       initMap();
       renderSavedRoutes();
-      document.getElementById('mapStatus').textContent = "Ready — Tap Enable Live GPS";
+      document.getElementById('mapStatus').textContent = "Ready — Tap Enable Live GPS or Manual Draw";
     };
   </script>
 </body>
