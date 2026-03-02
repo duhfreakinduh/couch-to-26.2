@@ -28,14 +28,14 @@
     <div class="flex justify-between items-center mb-8">
       <div>
         <h1 class="text-4xl font-bold flex items-center gap-3"><span class="text-green-500">🏃‍♂️</span> Joshua’s Fort Worth Run Tracker</h1>
-        <p class="text-gray-400">Live GPS + Manual Path Drawing • Save any route</p>
+        <p class="text-gray-400">Live GPS + Manual Path Drawing • Save & reload any route</p>
       </div>
       <button onclick="toggleDark()" class="p-3 bg-gray-800 rounded-xl"><i id="theme-icon" class="fas fa-moon text-xl"></i></button>
     </div>
 
     <!-- Map -->
     <div class="bg-gray-900 rounded-3xl p-4 mb-6">
-      <div id="mapStatus" class="text-sm font-medium text-yellow-400 mb-3 text-center">Tap Enable Live GPS to begin</div>
+      <div id="mapStatus" class="text-sm font-medium text-yellow-400 mb-3 text-center">Tap Enable Live GPS or start drawing manually</div>
       <div id="routeMap" class="rounded-3xl overflow-hidden shadow-2xl"></div>
     </div>
 
@@ -43,9 +43,10 @@
     <div class="flex flex-wrap gap-3 mb-8">
       <button onclick="enableLiveGPS()" id="enableBtn" class="flex-1 bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-bold text-lg">📍 Enable Live GPS</button>
       <button onclick="startRecording()" id="recordBtn" class="flex-1 bg-green-500 hover:bg-green-600 py-4 rounded-2xl font-bold text-lg hidden">▶️ Start Live Recording</button>
-      <button onclick="startManualDraw()" id="manualBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-500 py-4 rounded-2xl font-bold text-lg">✍️ Manual Draw Mode</button>
+      <button onclick="toggleManualDraw()" id="manualBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-500 py-4 rounded-2xl font-bold text-lg">✍️ Manual Draw Mode</button>
       <button onclick="pauseRecording()" id="pauseBtn" class="flex-1 bg-yellow-500 hover:bg-yellow-600 py-4 rounded-2xl font-bold text-lg hidden">⏸️ Pause</button>
       <button onclick="stopRecording()" id="stopBtn" class="flex-1 bg-red-500 hover:bg-red-600 py-4 rounded-2xl font-bold text-lg hidden">⏹️ Finish & Save</button>
+      <button onclick="saveCurrentPath()" id="saveBtn" class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-4 rounded-2xl font-bold text-lg hidden">💾 Save Current Path</button>
       <button onclick="clearLine()" class="flex-1 bg-gray-700 hover:bg-gray-600 py-4 rounded-2xl font-bold text-lg">Clear Line</button>
       <button onclick="centerOnMe()" class="flex-1 bg-purple-600 hover:bg-purple-500 py-4 rounded-2xl font-bold text-lg">Center on Me</button>
     </div>
@@ -61,13 +62,13 @@
 
     <!-- Saved Routes -->
     <div class="bg-gray-900 rounded-3xl p-8">
-      <h4 class="font-semibold text-xl mb-5">Saved Routes</h4>
+      <h4 class="font-semibold text-xl mb-5">Saved Routes (Manual or Live)</h4>
       <div id="savedRoutesList" class="space-y-3"></div>
     </div>
 
     <!-- Footer -->
     <div class="text-center text-gray-500 text-sm mt-12">
-      Built for Joshua in Fort Worth • Tap to draw manual paths or use live GPS • Add to home screen!<br>
+      Built for Joshua in Fort Worth • Tap to draw manual paths • Add to home screen!<br>
       <button onclick="exportLog()" class="underline mt-2">Export all saved routes</button>
     </div>
   </div>
@@ -96,6 +97,7 @@
           recordingPoints.push(e.latlng);
           redrawRecordingLine();
           updateLiveDistance();
+          showSaveButton();
         }
       });
     }
@@ -103,7 +105,6 @@
     function enableLiveGPS() {
       document.getElementById('enableBtn').classList.add('hidden');
       document.getElementById('recordBtn').classList.remove('hidden');
-      document.getElementById('manualBtn').classList.add('hidden');
       document.getElementById('mapStatus').textContent = "Requesting location...";
       if (watchId) return;
       watchId = navigator.geolocation.watchPosition(
@@ -119,10 +120,11 @@
             recordingPoints.push(latlng);
             redrawRecordingLine();
             updateLiveDistance();
+            showSaveButton();
           }
           document.getElementById('mapStatus').textContent = "✅ Live GPS active • Big pulsing dot on";
         },
-        err => alert("GPS error: " + err.message + "\n\nAllow location in browser settings for this site."),
+        err => alert("GPS error: " + err.message + "\n\nAllow location in browser settings."),
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     }
@@ -136,39 +138,55 @@
       document.getElementById('recordBtn').classList.add('hidden');
       document.getElementById('pauseBtn').classList.remove('hidden');
       document.getElementById('stopBtn').classList.remove('hidden');
+      document.getElementById('manualBtn').classList.add('hidden');
       document.getElementById('mapStatus').textContent = "Live recording active — move to draw green path";
     }
 
-    function startManualDraw() {
-      isManualDraw = true;
+    function toggleManualDraw() {
+      isManualDraw = !isManualDraw;
       isRecording = false;
-      recordingPoints = [];
-      if (recordingPolyline) recordingPolyline.remove();
-      document.getElementById('mapStatus').textContent = "Manual draw mode — tap the map to create your path";
+      document.getElementById('manualBtn').innerHTML = isManualDraw ? '✍️ Exit Manual Draw' : '✍️ Manual Draw Mode';
+      document.getElementById('mapStatus').textContent = isManualDraw ? "Manual draw active — tap the map to build your path" : "Ready — tap buttons above";
+      if (!isManualDraw) showSaveButton();
     }
 
     function pauseRecording() {
       isPaused = !isPaused;
       document.getElementById('pauseBtn').innerHTML = isPaused ? '▶️ Resume' : '⏸️ Pause';
-      document.getElementById('mapStatus').textContent = isPaused ? "Recording paused" : "Recording resumed";
+      document.getElementById('mapStatus').textContent = isPaused ? "Paused" : "Recording resumed";
     }
 
     function stopRecording() {
       isRecording = false;
-      isManualDraw = false;
       document.getElementById('pauseBtn').classList.add('hidden');
       document.getElementById('stopBtn').classList.add('hidden');
       document.getElementById('recordBtn').classList.remove('hidden');
       document.getElementById('manualBtn').classList.remove('hidden');
-      if (confirm("Save this path?")) saveCurrentRoute();
-      document.getElementById('mapStatus').textContent = "Path saved or discarded";
+      document.getElementById('mapStatus').textContent = "Recording stopped";
+      showSaveButton();
+    }
+
+    function saveCurrentPath() {
+      if (recordingPoints.length < 3) { alert("Draw or record a bit more first!"); return; }
+      const name = prompt("Name this route (manual or live)", "Fort Worth Run - " + new Date().toLocaleDateString());
+      if (!name) return;
+      let meters = 0;
+      for (let i = 1; i < recordingPoints.length; i++) meters += map.distance(recordingPoints[i-1], recordingPoints[i]);
+      const miles = (meters * 0.000621371).toFixed(1);
+      const route = {id: Date.now(), name, date: new Date().toLocaleDateString(), miles, coords: recordingPoints.map(p => [p.lat, p.lng])};
+      savedRoutes.unshift(route);
+      localStorage.setItem('savedRoutes', JSON.stringify(savedRoutes));
+      renderSavedRoutes();
+      alert(`✅ Saved "${name}" — ${miles} miles!`);
+      clearLine(); // optional: clear after save
     }
 
     function clearLine() {
       recordingPoints = [];
       if (recordingPolyline) recordingPolyline.remove();
       document.getElementById('liveDistance').textContent = "0.0 mi";
-      document.getElementById('mapStatus').textContent = "Line cleared — tap again or start new recording";
+      document.getElementById('saveBtn').classList.add('hidden');
+      document.getElementById('mapStatus').textContent = "Line cleared — start new path or recording";
     }
 
     function centerOnMe() {
@@ -186,22 +204,12 @@
       document.getElementById('liveDistance').textContent = (meters * 0.000621371).toFixed(2) + " mi";
     }
 
-    function toggleFollow() {
-      followMe = document.getElementById('followToggle').checked;
+    function showSaveButton() {
+      if (recordingPoints.length > 2) document.getElementById('saveBtn').classList.remove('hidden');
     }
 
-    function saveCurrentRoute() {
-      if (recordingPoints.length < 3) { alert("Make a longer path!"); return; }
-      const name = prompt("Name this route", "Fort Worth Run - " + new Date().toLocaleDateString());
-      if (!name) return;
-      let meters = 0;
-      for (let i = 1; i < recordingPoints.length; i++) meters += map.distance(recordingPoints[i-1], recordingPoints[i]);
-      const miles = (meters * 0.000621371).toFixed(1);
-      const route = {id: Date.now(), name, date: new Date().toLocaleDateString(), miles, coords: recordingPoints.map(p => [p.lat, p.lng])};
-      savedRoutes.unshift(route);
-      localStorage.setItem('savedRoutes', JSON.stringify(savedRoutes));
-      renderSavedRoutes();
-      alert(`✅ Saved "${name}" — ${miles} miles!`);
+    function toggleFollow() {
+      followMe = document.getElementById('followToggle').checked;
     }
 
     function renderSavedRoutes() {
@@ -220,6 +228,7 @@
       recordingPoints = route.coords.map(c => L.latLng(c[0], c[1]));
       redrawRecordingLine();
       updateLiveDistance();
+      showSaveButton();
       if (map) map.fitBounds(recordingPoints);
     }
 
@@ -242,14 +251,14 @@
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(savedRoutes, null, 2));
       const dl = document.createElement("a");
       dl.href = dataStr; dl.download = "my-saved-routes.json"; dl.click();
-      alert("✅ All routes exported!");
+      alert("✅ All saved routes exported!");
     }
 
     // INIT
     window.onload = () => {
       initMap();
       renderSavedRoutes();
-      document.getElementById('mapStatus').textContent = "Ready — Tap Enable Live GPS or Manual Draw";
+      document.getElementById('mapStatus').textContent = "Ready — Enable GPS or tap Manual Draw Mode";
     };
   </script>
 </body>
