@@ -4,330 +4,145 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b0f14" />
-  <title>Run FW — Live GPS + Route Builder</title>
+  <title>Run FW — GPS Run Tracker</title>
   <link rel="preconnect" href="https://unpkg.com" />
-  <link rel="preconnect" href="https://tile.openstreetmap.org" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
-    :root {
-      --bg: #0b0f14;
-      --panel: #131a22;
-      --panel2: #1a232e;
-      --text: #f7fafc;
-      --muted: #91a0b2;
-      --accent: #fc4c02;
-      --green: #25c26e;
-      --yellow: #f6c744;
-      --red: #ef5350;
-      --blue: #4da3ff;
-      --border: rgba(255,255,255,.08);
-      --shadow: 0 12px 34px rgba(0,0,0,.28);
-    }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    button, input, select { font: inherit; }
-    button { cursor: pointer; }
-    .app { max-width: 980px; margin: 0 auto; padding: 14px 14px calc(98px + env(safe-area-inset-bottom)); }
-    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 12px; }
-    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
-    .logo { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; background: var(--accent); font-size: 22px; font-weight: 900; box-shadow: var(--shadow); }
-    h1 { font-size: clamp(20px, 5vw, 30px); line-height: 1; margin: 0; letter-spacing: -.7px; }
-    .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
-    .pill { border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 999px; padding: 9px 12px; font-weight: 800; }
-    .pill.active { background: rgba(252,76,2,.14); color: #ff7a3f; border-color: rgba(252,76,2,.35); }
-    .modebar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-    .modebtn { border: 1px solid var(--border); background: var(--panel); color: var(--muted); border-radius: 14px; padding: 12px 8px; font-weight: 900; }
-    .modebtn.active { background: var(--accent); color: #fff; border-color: transparent; }
-    .mapShell { position: relative; background: var(--panel); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; box-shadow: var(--shadow); }
-    #map { height: min(64vh, 610px); min-height: 390px; width: 100%; }
-    .mapBadge { position: absolute; z-index: 800; top: 12px; left: 12px; max-width: calc(100% - 24px); padding: 9px 12px; border-radius: 12px; background: rgba(11,15,20,.88); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.12); font-size: 12px; font-weight: 800; }
-    .accuracy { position: absolute; z-index: 800; top: 12px; right: 12px; padding: 8px 10px; border-radius: 12px; background: rgba(11,15,20,.88); border: 1px solid rgba(255,255,255,.12); font-size: 11px; color: var(--muted); }
-    .mapActions { position: absolute; right: 12px; bottom: 12px; z-index: 800; display: grid; gap: 8px; }
-    .mapAction { width: 46px; height: 46px; border-radius: 50%; border: 1px solid rgba(255,255,255,.15); background: rgba(11,15,20,.9); color: white; font-size: 19px; box-shadow: var(--shadow); }
-    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
-    .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 13px 10px; text-align: center; }
-    .statValue { font-size: clamp(20px, 6vw, 32px); font-weight: 950; letter-spacing: -1px; }
-    .statLabel { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .9px; font-weight: 900; margin-top: 3px; }
-    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 22px; padding: 14px; margin-top: 12px; }
-    .panelTitle { margin: 0 0 10px; font-size: 17px; }
-    .row { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
-    .grow { flex: 1 1 160px; }
-    .primary, .secondary, .danger, .good, .warn { border: 0; border-radius: 15px; padding: 13px 15px; font-weight: 950; min-height: 48px; }
-    .primary { background: var(--accent); color: #fff; }
-    .good { background: var(--green); color: #07160d; }
-    .warn { background: var(--yellow); color: #171103; }
-    .danger { background: var(--red); color: #fff; }
-    .secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
-    .primary:disabled, .secondary:disabled, .danger:disabled, .good:disabled, .warn:disabled { opacity: .45; cursor: not-allowed; }
-    select, input[type="text"] { width: 100%; min-height: 46px; border: 1px solid var(--border); border-radius: 14px; background: var(--panel2); color: var(--text); padding: 0 12px; outline: none; }
-    .tiny { color: var(--muted); font-size: 12px; line-height: 1.45; }
-    .hidden { display: none !important; }
-    .list { display: grid; gap: 9px; }
-    .card { border: 1px solid var(--border); background: var(--panel2); border-radius: 17px; padding: 12px; }
-    .cardTop { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
-    .cardTitle { font-weight: 900; }
-    .cardMeta { color: var(--muted); font-size: 12px; margin-top: 3px; }
-    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 10px; }
-    .metric { background: rgba(255,255,255,.035); border-radius: 10px; padding: 7px; text-align: center; }
-    .metric strong { display: block; font-size: 14px; }
-    .metric span { display: block; color: var(--muted); font-size: 10px; margin-top: 2px; }
-    .iconBtn { border: 0; background: transparent; color: var(--muted); padding: 5px; font-size: 16px; }
-    .routeSummary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-    .routeSummary > div { border-radius: 14px; padding: 11px; background: var(--panel2); }
-    .routeSummary b { font-size: 22px; display: block; }
-    .routeSummary span { color: var(--muted); font-size: 11px; }
-    .liveDot { animation: pulse 1.8s infinite; }
-    @keyframes pulse { 0%{filter: drop-shadow(0 0 0 rgba(77,163,255,.8));} 50%{filter: drop-shadow(0 0 10px rgba(77,163,255,.9));} 100%{filter: drop-shadow(0 0 0 rgba(77,163,255,.8));} }
-    .leaflet-control-attribution { font-size: 9px !important; }
-    .leaflet-container { background: #101820; }
-    @media (max-width: 560px) {
-      .app { padding-left: 10px; padding-right: 10px; }
-      .topbar { margin-top: 2px; }
-      #map { min-height: 430px; height: 58vh; }
-      .stats { gap: 6px; }
-      .stat { padding: 11px 6px; border-radius: 15px; }
-      .panel { border-radius: 18px; padding: 12px; }
-    }
+    :root{--bg:#090d12;--panel:#121821;--panel2:#19212c;--text:#f7f9fc;--muted:#8e9bac;--accent:#fc4c02;--green:#2ccf78;--yellow:#f1c84a;--red:#ef5350;--blue:#54a8ff;--border:rgba(255,255,255,.08);--shadow:0 12px 30px rgba(0,0,0,.24)}
+    *{box-sizing:border-box} html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif} button,input,select{font:inherit} button{cursor:pointer}
+    .app{max-width:820px;margin:0 auto;padding:12px 12px calc(92px + env(safe-area-inset-bottom))}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 10px}.brand{display:flex;align-items:center;gap:10px;min-width:0}.logo{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--accent);font-weight:950;font-size:20px;box-shadow:var(--shadow)}
+    h1{font-size:23px;line-height:1;margin:0;letter-spacing:-.6px}.sub{color:var(--muted);font-size:11px;margin-top:4px}.topActions{display:flex;gap:7px}.pill{border:1px solid var(--border);background:var(--panel);color:var(--text);border-radius:999px;padding:8px 10px;font-weight:850;font-size:12px}.pill.active{background:rgba(252,76,2,.14);color:#ff8b57;border-color:rgba(252,76,2,.35)}
+    .nav{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}.navbtn{border:1px solid var(--border);background:var(--panel);color:var(--muted);border-radius:13px;padding:10px 4px;font-weight:900;font-size:12px}.navbtn.active{background:var(--accent);color:#fff;border-color:transparent}
+    .mapShell{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:19px;overflow:hidden;box-shadow:var(--shadow)}#map{height:315px;width:100%;transition:height .2s ease}.mapShell.compact #map{height:245px}.mapShell.expanded #map{height:min(62vh,540px)}
+    .mapBadge{position:absolute;z-index:800;top:9px;left:9px;max-width:calc(100% - 96px);padding:7px 9px;border-radius:10px;background:rgba(9,13,18,.88);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.12);font-size:11px;font-weight:800}.accuracy{position:absolute;z-index:800;top:9px;right:9px;padding:7px 8px;border-radius:10px;background:rgba(9,13,18,.88);border:1px solid rgba(255,255,255,.12);font-size:10px;color:var(--muted)}
+    .mapActions{position:absolute;right:9px;bottom:9px;z-index:800;display:flex;gap:7px}.mapAction{width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(9,13,18,.9);color:#fff;font-size:17px;box-shadow:var(--shadow)}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0}.stat{background:var(--panel);border:1px solid var(--border);border-radius:15px;padding:11px 7px;text-align:center}.statValue{font-size:clamp(22px,6vw,31px);font-weight:950;letter-spacing:-1px}.statLabel{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-weight:900;margin-top:2px}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:17px;padding:12px;margin-top:10px}.panelTitle{margin:0 0 9px;font-size:16px}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.grow{flex:1 1 140px}.btn{border:0;border-radius:13px;padding:11px 13px;font-weight:900;min-height:44px}.primary{background:var(--accent);color:#fff}.good{background:var(--green);color:#06150c}.warn{background:var(--yellow);color:#171103}.danger{background:var(--red);color:#fff}.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--border)}.btn:disabled{opacity:.45;cursor:not-allowed}
+    .segment{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.segbtn{border:1px solid var(--border);background:var(--panel2);color:var(--muted);border-radius:12px;padding:10px;font-weight:900}.segbtn.active{color:#fff;border-color:rgba(252,76,2,.55);background:rgba(252,76,2,.15)}
+    input[type=text],input[type=number],select{width:100%;min-height:44px;border:1px solid var(--border);border-radius:12px;background:var(--panel2);color:var(--text);padding:0 11px;outline:none}.tiny{color:var(--muted);font-size:11px;line-height:1.4}.hidden{display:none!important}.divider{height:1px;background:var(--border);margin:10px 0}
+    details{border:1px solid var(--border);background:rgba(255,255,255,.02);border-radius:13px;padding:0 11px}summary{cursor:pointer;padding:10px 0;font-weight:850;font-size:12px;color:#d9e0e8}.options{display:grid;gap:9px;padding:0 0 11px}.check{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--text);font-size:12px}.check input{width:19px;height:19px;accent-color:var(--accent)}
+    .routeSummary{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:9px}.routeSummary>div{border-radius:12px;padding:9px;background:var(--panel2);text-align:center}.routeSummary b{font-size:18px;display:block}.routeSummary span{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.6px}
+    .list{display:grid;gap:8px}.card{border:1px solid var(--border);background:var(--panel2);border-radius:14px;padding:11px}.cardTop{display:flex;justify-content:space-between;gap:9px;align-items:flex-start}.cardTitle{font-weight:900}.cardMeta{color:var(--muted);font-size:11px;margin-top:3px}.iconBtn{border:0;background:transparent;color:var(--muted);padding:4px;font-size:15px}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}.metric{background:rgba(255,255,255,.035);border-radius:9px;padding:7px;text-align:center}.metric strong{display:block;font-size:13px}.metric span{display:block;color:var(--muted);font-size:9px;margin-top:2px}
+    .filterbar{display:flex;gap:6px;overflow:auto;padding-bottom:2px}.filterbtn{white-space:nowrap;border:1px solid var(--border);background:var(--panel2);color:var(--muted);border-radius:999px;padding:7px 10px;font-size:11px;font-weight:850}.filterbtn.active{background:#fff;color:#0d1117;border-color:#fff}
+    .bigStats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.bigStat{background:var(--panel2);border-radius:14px;padding:13px}.bigStat b{display:block;font-size:24px}.bigStat span{color:var(--muted);font-size:10px;text-transform:uppercase;font-weight:850}.full{grid-column:1/-1}
+    .liveDot{animation:pulse 1.8s infinite}@keyframes pulse{0%{filter:drop-shadow(0 0 0 rgba(84,168,255,.8))}50%{filter:drop-shadow(0 0 10px rgba(84,168,255,.95))}100%{filter:drop-shadow(0 0 0 rgba(84,168,255,.8))}}.leaflet-control-attribution{font-size:8px!important}.leaflet-container{background:#101820}
+    @media(max-width:560px){.app{padding-left:9px;padding-right:9px}.sub{display:none}.pill{padding:8px 9px}.navbtn{font-size:11px;padding:9px 2px}.mapShell #map{height:270px}.mapShell.compact #map{height:220px}.mapShell.expanded #map{height:55vh}.panel{padding:11px}.routeSummary b{font-size:16px}}
   </style>
 </head>
 <body>
-  <main class="app">
-    <header class="topbar">
-      <div class="brand"><div class="logo">R</div><div><h1>Run FW</h1><div class="sub">Live GPS tracker + custom route builder</div></div></div>
-      <button id="followBtn" class="pill active" type="button" onclick="toggleFollow()">◎ Follow</button>
-    </header>
-    <nav class="modebar" aria-label="App modes">
-      <button class="modebtn active" id="modeTrack" onclick="setMode('track')">TRACK</button>
-      <button class="modebtn" id="modeBuild" onclick="setMode('build')">BUILD</button>
-      <button class="modebtn" id="modeSaved" onclick="setMode('saved')">SAVED</button>
-    </nav>
-    <section class="mapShell">
-      <div id="mapStatus" class="mapBadge">Ready — enable GPS to find yourself.</div>
-      <div id="accuracyBadge" class="accuracy">GPS —</div>
-      <div id="map"></div>
-      <div class="mapActions"><button class="mapAction" onclick="centerOnMe()" aria-label="Center on my location" title="Center on me">⌖</button><button class="mapAction" onclick="fitActivePath()" aria-label="Fit route on map" title="Fit route">⛶</button></div>
-    </section>
-    <section id="trackView">
-      <div class="stats">
-        <div class="stat"><div id="distanceStat" class="statValue">0.00</div><div class="statLabel">Miles</div></div>
-        <div class="stat"><div id="timeStat" class="statValue">00:00</div><div class="statLabel">Time</div></div>
-        <div class="stat"><div id="paceStat" class="statValue">--:--</div><div class="statLabel">Pace / mi</div></div>
+<main class="app">
+  <header class="topbar">
+    <div class="brand"><div class="logo">R</div><div><h1>Run FW</h1><div class="sub">Simple GPS tracking + route planning</div></div></div>
+    <div class="topActions"><button id="followBtn" class="pill active" onclick="toggleFollow()">◎ Follow</button><button class="pill" onclick="toggleMapSize()">↕ Map</button></div>
+  </header>
+
+  <nav class="nav" aria-label="App sections">
+    <button id="navTrack" class="navbtn active" onclick="setMode('track')">TRACK</button>
+    <button id="navRoute" class="navbtn" onclick="setMode('route')">ROUTE</button>
+    <button id="navHistory" class="navbtn" onclick="setMode('history')">HISTORY</button>
+    <button id="navStats" class="navbtn" onclick="setMode('stats')">STATS</button>
+  </nav>
+
+  <section id="mapShell" class="mapShell">
+    <div id="mapStatus" class="mapBadge">Ready — turn on GPS.</div>
+    <div id="accuracyBadge" class="accuracy">GPS —</div>
+    <div id="map"></div>
+    <div class="mapActions"><button class="mapAction" onclick="centerOnMe()" title="Center on me">⌖</button><button class="mapAction" onclick="fitActivePath()" title="Fit route">⛶</button></div>
+  </section>
+
+  <section id="trackView">
+    <div class="stats">
+      <div class="stat"><div id="distanceStat" class="statValue">0.00</div><div class="statLabel">Miles</div></div>
+      <div class="stat"><div id="timeStat" class="statValue">00:00</div><div class="statLabel">Time</div></div>
+      <div class="stat"><div id="paceStat" class="statValue">--:--</div><div class="statLabel">Pace / mi</div></div>
+    </div>
+    <div class="panel">
+      <div class="segment" aria-label="Activity type">
+        <button class="segbtn active" data-type="Run" onclick="setActivityType('Run')">🏃 Run</button>
+        <button class="segbtn" data-type="Walk" onclick="setActivityType('Walk')">🚶 Walk</button>
+        <button class="segbtn" data-type="Ride" onclick="setActivityType('Ride')">🚲 Ride</button>
       </div>
-      <div class="panel">
-        <div class="row">
-          <select id="activityType" class="grow" aria-label="Activity type"><option value="Run">Run</option><option value="Walk">Walk</option><option value="Ride">Ride</option></select>
-          <button id="gpsBtn" class="secondary grow" onclick="enableGPS()">📍 Enable GPS</button>
-        </div>
-        <div class="row" style="margin-top:9px"><button id="startBtn" class="good grow" onclick="startActivity()" disabled>▶ Start</button><button id="pauseBtn" class="warn grow hidden" onclick="togglePause()">Ⅱ Pause</button><button id="finishBtn" class="danger grow hidden" onclick="finishActivity()">■ Finish</button></div>
-        <p class="tiny" style="margin-bottom:0">For the best phone tracking, allow precise location and keep location services on. GPS accuracy varies by device, buildings, trees, and signal.</p>
+      <div class="row" style="margin-top:9px"><button id="gpsBtn" class="btn secondary grow" onclick="enableGPS()">📍 Turn on GPS</button><button id="startBtn" class="btn good grow" onclick="startActivity()" disabled>▶ START</button></div>
+      <div id="recordControls" class="row hidden" style="margin-top:8px"><button id="pauseBtn" class="btn warn grow" onclick="togglePause()">Ⅱ Pause</button><button id="finishBtn" class="btn danger grow" onclick="finishActivity()">■ Finish & Save</button></div>
+      <details style="margin-top:9px"><summary>More run options</summary><div class="options">
+        <label class="check"><span>Mile voice alerts</span><input id="voiceAlerts" type="checkbox" checked></label>
+        <label class="check"><span>Keep screen awake while tracking</span><input id="wakeLockToggle" type="checkbox" checked></label>
+        <label><div class="tiny" style="margin-bottom:5px">Distance goal (miles, optional)</div><input id="distanceGoal" type="number" min="0" step="0.1" placeholder="Example: 3.1"></label>
+      </div></details>
+    </div>
+  </section>
+
+  <section id="routeView" class="hidden">
+    <div class="panel">
+      <h2 class="panelTitle">Build a route</h2>
+      <div class="routeSummary"><div><b id="buildDistance">0.00</b><span>Miles</span></div><div><b id="waypointCount">0</b><span>Points</span></div><div><b id="routeGoal">—</b><span>Goal</span></div></div>
+      <p class="tiny">Tap the map to add points. The route connects them in order.</p>
+      <div class="row"><button class="btn secondary grow" onclick="addMyLocationToRoute()">⌖ Start from me</button><button class="btn secondary grow" onclick="undoWaypoint()">↶ Undo</button><button class="btn secondary grow" onclick="reverseRoute()">⇄ Reverse</button></div>
+      <div class="row" style="margin-top:8px"><button class="btn secondary grow" onclick="closeLoop()">↻ Close loop</button><button class="btn danger grow" onclick="clearBuildRoute()">Clear</button></div>
+      <div class="divider"></div>
+      <div class="row"><input id="routeName" class="grow" type="text" placeholder="Route name"><button class="btn primary grow" onclick="saveBuiltRoute()">Save route</button></div>
+    </div>
+  </section>
+
+  <section id="historyView" class="hidden">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between"><h2 class="panelTitle" style="margin:0">Activity history</h2><button class="btn secondary" style="min-height:auto;padding:8px 10px" onclick="exportData()">Export</button></div>
+      <div class="filterbar" style="margin:9px 0"><button class="filterbtn active" data-filter="All" onclick="setHistoryFilter('All')">All</button><button class="filterbtn" data-filter="Run" onclick="setHistoryFilter('Run')">Runs</button><button class="filterbtn" data-filter="Walk" onclick="setHistoryFilter('Walk')">Walks</button><button class="filterbtn" data-filter="Ride" onclick="setHistoryFilter('Ride')">Rides</button><button class="filterbtn" data-filter="Routes" onclick="setHistoryFilter('Routes')">Routes</button></div>
+      <div id="historyList" class="list"></div>
+    </div>
+  </section>
+
+  <section id="statsView" class="hidden">
+    <div class="panel">
+      <h2 class="panelTitle">Your running stats</h2>
+      <div class="bigStats">
+        <div class="bigStat"><b id="weekMiles">0.0</b><span>Last 7 days miles</span></div>
+        <div class="bigStat"><b id="monthMiles">0.0</b><span>Last 30 days miles</span></div>
+        <div class="bigStat"><b id="totalActivities">0</b><span>Total activities</span></div>
+        <div class="bigStat"><b id="longestActivity">0.0</b><span>Longest miles</span></div>
+        <div class="bigStat full"><b id="avgRunPace">--:--</b><span>Average run pace / mile</span></div>
       </div>
-    </section>
-    <section id="buildView" class="hidden">
-      <div class="panel">
-        <h2 class="panelTitle">Build a custom route</h2>
-        <div class="routeSummary"><div><b id="buildDistance">0.00 mi</b><span>Planned distance</span></div><div><b id="waypointCount">0</b><span>Waypoints</span></div></div>
-        <p class="tiny">Tap the map to drop waypoints. They connect in order so you can sketch a neighborhood loop, out-and-back, or training route.</p>
-        <div class="row"><button class="secondary grow" onclick="undoWaypoint()">↶ Undo</button><button class="secondary grow" onclick="closeLoop()">↻ Close Loop</button><button class="danger grow" onclick="clearBuildRoute()">Clear</button></div>
-        <div class="row" style="margin-top:9px"><input id="routeName" class="grow" type="text" placeholder="Route name, e.g. 3 Mile Neighborhood Loop" /><button class="primary grow" onclick="saveBuiltRoute()">Save Route</button></div>
-      </div>
-    </section>
-    <section id="savedView" class="hidden">
-      <div class="panel"><div class="row" style="justify-content:space-between"><h2 class="panelTitle" style="margin:0">Saved routes</h2><button class="secondary" style="min-height:auto;padding:9px 11px" onclick="exportData()">Export</button></div><div id="routeList" class="list" style="margin-top:10px"></div></div>
-      <div class="panel"><h2 class="panelTitle">Activity history</h2><div id="activityList" class="list"></div></div>
-    </section>
-  </main>
-  <script>
-    const MILES_PER_METER = 0.000621371;
-    const STORAGE_ACTIVITIES = 'runfw.activities.v2';
-    const STORAGE_ROUTES = 'runfw.routes.v2';
-    let map, userMarker, accuracyCircle, activityPolyline, buildPolyline, displayPolyline;
-    let watchId = null, gpsReady = false, lastPosition = null, followMe = true, mode = 'track';
-    let isRecording = false, isPaused = false, activityPoints = [], activityStartedAt = null, pausedStartedAt = null, pausedTotalMs = 0, timerId = null;
-    let buildPoints = [], waypointMarkers = [];
-    let activities = loadJson(STORAGE_ACTIVITIES), routes = loadJson(STORAGE_ROUTES);
-
-    function loadJson(key) { try { const value = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(value) ? value : []; } catch (_) { return []; } }
-    function persist() { localStorage.setItem(STORAGE_ACTIVITIES, JSON.stringify(activities)); localStorage.setItem(STORAGE_ROUTES, JSON.stringify(routes)); }
-
-    function initMap() {
-      map = L.map('map', { zoomControl: false }).setView([32.7555, -97.3308], 13);
-      L.control.zoom({ position: 'bottomleft' }).addTo(map);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
-      map.on('click', e => { if (mode === 'build') addWaypoint(e.latlng); });
-    }
-
-    function setMode(nextMode) {
-      mode = nextMode;
-      document.getElementById('trackView').classList.toggle('hidden', nextMode !== 'track');
-      document.getElementById('buildView').classList.toggle('hidden', nextMode !== 'build');
-      document.getElementById('savedView').classList.toggle('hidden', nextMode !== 'saved');
-      ['Track','Build','Saved'].forEach(name => document.getElementById('mode' + name).classList.toggle('active', nextMode === name.toLowerCase()));
-      clearDisplayPolyline();
-      if (nextMode === 'build') { document.getElementById('mapStatus').textContent = 'BUILD mode — tap the map to add waypoints.'; renderBuildRoute(); }
-      else if (nextMode === 'track') { document.getElementById('mapStatus').textContent = gpsReady ? 'GPS ready — press Start when you are ready.' : 'Ready — enable GPS to find yourself.'; renderActivityPath(); }
-      else { document.getElementById('mapStatus').textContent = 'Tap a saved route or activity to show it on the map.'; renderSaved(); }
-      setTimeout(() => map.invalidateSize(), 40);
-    }
-
-    function enableGPS() {
-      if (!navigator.geolocation) { alert('This browser does not support GPS location.'); return; }
-      document.getElementById('mapStatus').textContent = 'Requesting precise location…';
-      document.getElementById('gpsBtn').disabled = true;
-      if (watchId !== null) { gpsReady = true; document.getElementById('startBtn').disabled = false; return; }
-      watchId = navigator.geolocation.watchPosition(handlePosition, handleGpsError, { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 });
-    }
-
-    function handlePosition(pos) {
-      const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude);
-      lastPosition = { lat: latlng.lat, lng: latlng.lng, accuracy: Number.isFinite(pos.coords.accuracy) ? pos.coords.accuracy : null, speed: Number.isFinite(pos.coords.speed) ? pos.coords.speed : null, timestamp: pos.timestamp || Date.now() };
-      gpsReady = true;
-      document.getElementById('gpsBtn').textContent = '✓ GPS On';
-      document.getElementById('gpsBtn').disabled = true;
-      document.getElementById('startBtn').disabled = isRecording;
-      document.getElementById('accuracyBadge').textContent = lastPosition.accuracy ? `GPS ±${Math.round(lastPosition.accuracy)} m` : 'GPS active';
-      if (!userMarker) userMarker = L.circleMarker(latlng, { radius: 9, color: '#ffffff', weight: 3, fillColor: '#4da3ff', fillOpacity: 1, className: 'liveDot' }).addTo(map); else userMarker.setLatLng(latlng);
-      if (lastPosition.accuracy) {
-        if (!accuracyCircle) accuracyCircle = L.circle(latlng, { radius: lastPosition.accuracy, color: '#4da3ff', weight: 1, opacity: .35, fillColor: '#4da3ff', fillOpacity: .08 }).addTo(map); else accuracyCircle.setLatLng(latlng).setRadius(lastPosition.accuracy);
-      }
-      if (followMe) map.setView(latlng, Math.max(map.getZoom(), 16), { animate: true });
-      if (!isRecording || isPaused) { document.getElementById('mapStatus').textContent = isPaused ? 'Activity paused.' : 'GPS ready — press Start when you are ready.'; return; }
-      if (shouldRecordPoint(lastPosition)) { activityPoints.push({ lat: lastPosition.lat, lng: lastPosition.lng, accuracy: lastPosition.accuracy, timestamp: lastPosition.timestamp }); renderActivityPath(); updateTrackStats(); }
-    }
-
-    function shouldRecordPoint(point) {
-      if (!point) return false;
-      if (point.accuracy && point.accuracy > 65) return false;
-      if (activityPoints.length === 0) return true;
-      const previous = activityPoints[activityPoints.length - 1];
-      const meters = map.distance([previous.lat, previous.lng], [point.lat, point.lng]);
-      const seconds = Math.max(1, (point.timestamp - previous.timestamp) / 1000);
-      if (meters < 2) return false;
-      if (meters / seconds > 14) return false;
-      return true;
-    }
-
-    function handleGpsError(err) {
-      gpsReady = false;
-      document.getElementById('gpsBtn').disabled = false;
-      document.getElementById('gpsBtn').textContent = '📍 Enable GPS';
-      document.getElementById('startBtn').disabled = true;
-      document.getElementById('mapStatus').textContent = 'GPS unavailable — check location permission.';
-      alert(`GPS error: ${err.message}\n\nAllow precise location for this site, then try again.`);
-    }
-
-    function startActivity() {
-      if (!gpsReady || !lastPosition) { enableGPS(); return; }
-      isRecording = true; isPaused = false;
-      activityPoints = [{ lat: lastPosition.lat, lng: lastPosition.lng, accuracy: lastPosition.accuracy, timestamp: Date.now() }];
-      activityStartedAt = Date.now(); pausedStartedAt = null; pausedTotalMs = 0;
-      clearDisplayPolyline(); renderActivityPath(); updateTrackStats();
-      document.getElementById('startBtn').classList.add('hidden');
-      document.getElementById('pauseBtn').classList.remove('hidden');
-      document.getElementById('finishBtn').classList.remove('hidden');
-      document.getElementById('activityType').disabled = true;
-      document.getElementById('mapStatus').textContent = 'Recording live — move to draw your route.';
-      timerId = setInterval(updateTrackStats, 1000);
-    }
-
-    function togglePause() {
-      if (!isRecording) return;
-      isPaused = !isPaused;
-      const btn = document.getElementById('pauseBtn');
-      if (isPaused) { pausedStartedAt = Date.now(); btn.textContent = '▶ Resume'; document.getElementById('mapStatus').textContent = 'Activity paused.'; }
-      else { if (pausedStartedAt) pausedTotalMs += Date.now() - pausedStartedAt; pausedStartedAt = null; btn.textContent = 'Ⅱ Pause'; document.getElementById('mapStatus').textContent = 'Recording resumed.'; }
-      updateTrackStats();
-    }
-
-    function finishActivity() {
-      if (!isRecording) return;
-      if (isPaused && pausedStartedAt) { pausedTotalMs += Date.now() - pausedStartedAt; pausedStartedAt = null; }
-      const elapsedMs = getElapsedMs();
-      const miles = pathMeters(activityPoints) * MILES_PER_METER;
-      const type = document.getElementById('activityType').value;
-      const defaultName = `${type} — ${new Date().toLocaleDateString()}`;
-      const name = prompt('Name this activity', defaultName) || defaultName;
-      if (activityPoints.length > 1 || elapsedMs > 5000) {
-        activities.unshift({ id: Date.now(), name, type, date: new Date().toISOString(), distanceMiles: round(miles, 3), elapsedSeconds: Math.max(0, Math.round(elapsedMs / 1000)), paceSecondsPerMile: miles > .02 ? Math.round((elapsedMs / 1000) / miles) : null, coords: activityPoints.map(p => [round(p.lat, 6), round(p.lng, 6)]) });
-        persist();
-      }
-      isRecording = false; isPaused = false; clearInterval(timerId); timerId = null;
-      document.getElementById('startBtn').classList.remove('hidden'); document.getElementById('startBtn').disabled = !gpsReady;
-      document.getElementById('pauseBtn').classList.add('hidden'); document.getElementById('pauseBtn').textContent = 'Ⅱ Pause';
-      document.getElementById('finishBtn').classList.add('hidden'); document.getElementById('activityType').disabled = false;
-      document.getElementById('mapStatus').textContent = `Saved ${miles.toFixed(2)} mi ${type.toLowerCase()}.`;
-      renderSaved();
-    }
-
-    function getElapsedMs() { if (!activityStartedAt) return 0; const now = Date.now(); const currentPause = isPaused && pausedStartedAt ? now - pausedStartedAt : 0; return Math.max(0, now - activityStartedAt - pausedTotalMs - currentPause); }
-    function pathMeters(points) { let meters = 0; for (let i = 1; i < points.length; i++) { const a = Array.isArray(points[i - 1]) ? points[i - 1] : [points[i - 1].lat, points[i - 1].lng]; const b = Array.isArray(points[i]) ? points[i] : [points[i].lat, points[i].lng]; meters += map.distance(a, b); } return meters; }
-    function updateTrackStats() { const miles = pathMeters(activityPoints) * MILES_PER_METER; const elapsedSeconds = Math.round(getElapsedMs() / 1000); document.getElementById('distanceStat').textContent = miles.toFixed(2); document.getElementById('timeStat').textContent = formatDuration(elapsedSeconds); document.getElementById('paceStat').textContent = miles > .02 ? formatPace(elapsedSeconds / miles) : '--:--'; }
-    function renderActivityPath() { if (activityPolyline) activityPolyline.remove(); if (!activityPoints.length) return; activityPolyline = L.polyline(activityPoints.map(p => [p.lat, p.lng]), { color: '#fc4c02', weight: 6, opacity: .95, lineJoin: 'round' }).addTo(map); }
-
-    function addWaypoint(latlng) { buildPoints.push([latlng.lat, latlng.lng]); renderBuildRoute(); }
-    function undoWaypoint() { buildPoints.pop(); renderBuildRoute(); }
-    function closeLoop() { if (buildPoints.length < 3) return; const first = buildPoints[0], last = buildPoints[buildPoints.length - 1]; if (map.distance(first, last) > 3) buildPoints.push([...first]); renderBuildRoute(); }
-    function clearBuildRoute() { buildPoints = []; document.getElementById('routeName').value = ''; renderBuildRoute(); }
-
-    function renderBuildRoute() {
-      if (buildPolyline) buildPolyline.remove();
-      waypointMarkers.forEach(m => m.remove()); waypointMarkers = [];
-      if (buildPoints.length) {
-        buildPolyline = L.polyline(buildPoints, { color: '#25c26e', weight: 6, opacity: .95, lineJoin: 'round' }).addTo(map);
-        buildPoints.forEach((p, i) => { const marker = L.circleMarker(p, { radius: i === 0 ? 7 : 5, color: '#fff', weight: 2, fillColor: i === 0 ? '#25c26e' : '#131a22', fillOpacity: 1 }).addTo(map); waypointMarkers.push(marker); });
-      }
-      document.getElementById('buildDistance').textContent = `${(pathMeters(buildPoints) * MILES_PER_METER).toFixed(2)} mi`;
-      document.getElementById('waypointCount').textContent = buildPoints.length;
-    }
-
-    function saveBuiltRoute() {
-      if (buildPoints.length < 2) { alert('Tap at least two points on the map first.'); return; }
-      const distanceMiles = pathMeters(buildPoints) * MILES_PER_METER;
-      const entered = document.getElementById('routeName').value.trim();
-      const name = entered || `Custom Route — ${distanceMiles.toFixed(1)} mi`;
-      routes.unshift({ id: Date.now(), name, date: new Date().toISOString(), distanceMiles: round(distanceMiles, 3), coords: buildPoints.map(p => [round(p[0], 6), round(p[1], 6)]) });
-      persist(); document.getElementById('routeName').value = ''; document.getElementById('mapStatus').textContent = `Saved route: ${name}`; renderSaved();
-    }
-
-    function renderSaved() {
-      const routeList = document.getElementById('routeList'), activityList = document.getElementById('activityList');
-      routeList.innerHTML = routes.length ? '' : '<div class="tiny">No custom routes yet. Use BUILD to make one.</div>';
-      routes.forEach((route, index) => {
-        const el = document.createElement('div'); el.className = 'card';
-        el.innerHTML = `<div class="cardTop"><div><div class="cardTitle">${escapeHtml(route.name)}</div><div class="cardMeta">${new Date(route.date).toLocaleDateString()} • ${(route.distanceMiles || 0).toFixed(2)} mi</div></div><button class="iconBtn" title="Delete route" onclick="deleteRoute(${index})">🗑</button></div><div class="row" style="margin-top:9px"><button class="secondary grow" onclick="showRoute(${index})">Show on map</button><button class="primary grow" onclick="useRoute(${index})">Load into builder</button></div>`;
-        routeList.appendChild(el);
-      });
-      activityList.innerHTML = activities.length ? '' : '<div class="tiny">No recorded activities yet. Use TRACK and go get one.</div>';
-      activities.forEach((activity, index) => {
-        const el = document.createElement('div'); el.className = 'card';
-        el.innerHTML = `<div class="cardTop"><div><div class="cardTitle">${escapeHtml(activity.name)}</div><div class="cardMeta">${escapeHtml(activity.type || 'Activity')} • ${new Date(activity.date).toLocaleString()}</div></div><button class="iconBtn" title="Delete activity" onclick="deleteActivity(${index})">🗑</button></div><div class="metrics"><div class="metric"><strong>${Number(activity.distanceMiles || 0).toFixed(2)}</strong><span>MILES</span></div><div class="metric"><strong>${formatDuration(activity.elapsedSeconds || 0)}</strong><span>TIME</span></div><div class="metric"><strong>${activity.paceSecondsPerMile ? formatPace(activity.paceSecondsPerMile) : '--:--'}</strong><span>PACE</span></div></div><div class="row" style="margin-top:9px"><button class="secondary grow" onclick="showActivity(${index})">Show on map</button></div>`;
-        activityList.appendChild(el);
-      });
-    }
-
-    function showRoute(index) { const route = routes[index]; if (!route) return; showCoords(route.coords, '#25c26e'); document.getElementById('mapStatus').textContent = `${route.name} — ${Number(route.distanceMiles || 0).toFixed(2)} mi`; }
-    function showActivity(index) { const activity = activities[index]; if (!activity) return; showCoords(activity.coords, '#fc4c02'); document.getElementById('mapStatus').textContent = `${activity.name} — ${Number(activity.distanceMiles || 0).toFixed(2)} mi`; }
-    function showCoords(coords, color) { clearDisplayPolyline(); if (!coords || !coords.length) return; displayPolyline = L.polyline(coords, { color, weight: 6, opacity: .95 }).addTo(map); map.fitBounds(displayPolyline.getBounds(), { padding: [25, 25] }); }
-    function useRoute(index) { const route = routes[index]; if (!route) return; buildPoints = route.coords.map(p => [p[0], p[1]]); document.getElementById('routeName').value = route.name; setMode('build'); renderBuildRoute(); if (buildPolyline) map.fitBounds(buildPolyline.getBounds(), { padding: [25, 25] }); }
-    function deleteRoute(index) { if (!confirm('Delete this saved route?')) return; routes.splice(index, 1); persist(); clearDisplayPolyline(); renderSaved(); }
-    function deleteActivity(index) { if (!confirm('Delete this recorded activity?')) return; activities.splice(index, 1); persist(); clearDisplayPolyline(); renderSaved(); }
-
-    function centerOnMe() { if (!lastPosition) { enableGPS(); return; } map.setView([lastPosition.lat, lastPosition.lng], 17, { animate: true }); }
-    function fitActivePath() { let layer = null; if (mode === 'track' && activityPolyline && activityPoints.length > 1) layer = activityPolyline; if (mode === 'build' && buildPolyline && buildPoints.length > 1) layer = buildPolyline; if (mode === 'saved' && displayPolyline) layer = displayPolyline; if (layer) map.fitBounds(layer.getBounds(), { padding: [25, 25] }); else centerOnMe(); }
-    function toggleFollow() { followMe = !followMe; const btn = document.getElementById('followBtn'); btn.classList.toggle('active', followMe); btn.textContent = followMe ? '◎ Follow' : '○ Free map'; if (followMe) centerOnMe(); }
-    function clearDisplayPolyline() { if (displayPolyline) { displayPolyline.remove(); displayPolyline = null; } }
-
-    function exportData() {
-      const payload = { exportedAt: new Date().toISOString(), routes, activities };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `run-fw-export-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-    }
-
-    function formatDuration(seconds) { seconds = Math.max(0, Math.round(Number(seconds) || 0)); const h = Math.floor(seconds / 3600), m = Math.floor((seconds % 3600) / 60), s = seconds % 60; return h > 0 ? `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
-    function formatPace(secondsPerMile) { const total = Math.max(0, Math.round(Number(secondsPerMile) || 0)); const m = Math.floor(total / 60), s = total % 60; return `${m}:${String(s).padStart(2,'0')}`; }
-    function round(value, places) { const factor = 10 ** places; return Math.round(value * factor) / factor; }
-    function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char])); }
-    window.addEventListener('load', () => { initMap(); renderSaved(); updateTrackStats(); });
-  </script>
+    </div>
+    <div class="panel"><h2 class="panelTitle">Saved routes</h2><div id="savedRouteList" class="list"></div></div>
+  </section>
+</main>
+<script>
+const MILES_PER_METER=.000621371, STORAGE_ACTIVITIES='runfw.activities.v2', STORAGE_ROUTES='runfw.routes.v2';
+let map,userMarker,accuracyCircle,activityPolyline,buildPolyline,displayPolyline,watchId=null,gpsReady=false,lastPosition=null,followMe=true,mode='track',mapSizeIndex=0;
+let activityType='Run',isRecording=false,isPaused=false,activityPoints=[],activityStartedAt=null,pausedStartedAt=null,pausedTotalMs=0,timerId=null,wakeLock=null,lastAnnouncedMile=0,goalAnnounced=false;
+let buildPoints=[],waypointMarkers=[],historyFilter='All',activities=loadJson(STORAGE_ACTIVITIES),routes=loadJson(STORAGE_ROUTES);
+function loadJson(k){try{const v=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(v)?v:[]}catch(_){return[]}} function persist(){localStorage.setItem(STORAGE_ACTIVITIES,JSON.stringify(activities));localStorage.setItem(STORAGE_ROUTES,JSON.stringify(routes))}
+function initMap(){map=L.map('map',{zoomControl:false}).setView([32.7555,-97.3308],13);L.control.zoom({position:'bottomleft'}).addTo(map);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);map.on('click',e=>{if(mode==='route')addWaypoint(e.latlng)})}
+function setMode(next){mode=next;['track','route','history','stats'].forEach(n=>{document.getElementById(n+'View').classList.toggle('hidden',n!==next);document.getElementById('nav'+n[0].toUpperCase()+n.slice(1)).classList.toggle('active',n===next)});clearDisplayPolyline();if(next==='route'){setStatus('ROUTE — tap the map to add points.');renderBuildRoute()}else if(next==='track'){setStatus(gpsReady?'GPS ready — press START.':'Ready — turn on GPS.');renderActivityPath()}else if(next==='history'){setStatus('Tap an item to show it on the map.');renderHistory()}else{setStatus('Your totals update automatically.');renderStats()}setTimeout(()=>map.invalidateSize(),40)}
+function setStatus(t){document.getElementById('mapStatus').textContent=t} function setActivityType(type){if(isRecording)return;activityType=type;document.querySelectorAll('.segbtn').forEach(b=>b.classList.toggle('active',b.dataset.type===type))}
+function toggleMapSize(){mapSizeIndex=(mapSizeIndex+1)%3;const shell=document.getElementById('mapShell');shell.classList.toggle('compact',mapSizeIndex===1);shell.classList.toggle('expanded',mapSizeIndex===2);setTimeout(()=>map.invalidateSize(),220)}
+function enableGPS(){if(!navigator.geolocation){alert('This browser does not support GPS.');return}setStatus('Requesting precise location…');document.getElementById('gpsBtn').disabled=true;if(watchId!==null){gpsReady=true;document.getElementById('startBtn').disabled=false;return}watchId=navigator.geolocation.watchPosition(handlePosition,handleGpsError,{enableHighAccuracy:true,maximumAge:1000,timeout:15000})}
+function handlePosition(pos){const ll=L.latLng(pos.coords.latitude,pos.coords.longitude);lastPosition={lat:ll.lat,lng:ll.lng,accuracy:Number.isFinite(pos.coords.accuracy)?pos.coords.accuracy:null,speed:Number.isFinite(pos.coords.speed)?pos.coords.speed:null,timestamp:pos.timestamp||Date.now()};gpsReady=true;document.getElementById('gpsBtn').textContent='✓ GPS ON';document.getElementById('gpsBtn').disabled=true;document.getElementById('startBtn').disabled=isRecording;document.getElementById('accuracyBadge').textContent=lastPosition.accuracy?`GPS ±${Math.round(lastPosition.accuracy)}m`:'GPS active';if(!userMarker)userMarker=L.circleMarker(ll,{radius:8,color:'#fff',weight:3,fillColor:'#54a8ff',fillOpacity:1,className:'liveDot'}).addTo(map);else userMarker.setLatLng(ll);if(lastPosition.accuracy){if(!accuracyCircle)accuracyCircle=L.circle(ll,{radius:lastPosition.accuracy,color:'#54a8ff',weight:1,opacity:.3,fillColor:'#54a8ff',fillOpacity:.06}).addTo(map);else accuracyCircle.setLatLng(ll).setRadius(lastPosition.accuracy)}if(followMe&&mode==='track')map.setView(ll,Math.max(map.getZoom(),16),{animate:true});if(!isRecording||isPaused){setStatus(isPaused?'Paused.':'GPS ready — press START.');return}if(shouldRecordPoint(lastPosition)){activityPoints.push({lat:lastPosition.lat,lng:lastPosition.lng,accuracy:lastPosition.accuracy,timestamp:lastPosition.timestamp});renderActivityPath();updateTrackStats();checkAlerts()}}
+function shouldRecordPoint(p){if(!p)return false;if(p.accuracy&&p.accuracy>65)return false;if(!activityPoints.length)return true;const prev=activityPoints[activityPoints.length-1],meters=map.distance([prev.lat,prev.lng],[p.lat,p.lng]),seconds=Math.max(1,(p.timestamp-prev.timestamp)/1000);if(meters<2)return false;if(meters/seconds>14)return false;return true}
+function handleGpsError(err){gpsReady=false;document.getElementById('gpsBtn').disabled=false;document.getElementById('gpsBtn').textContent='📍 Turn on GPS';document.getElementById('startBtn').disabled=true;setStatus('GPS unavailable — check location permission.');alert(`GPS error: ${err.message}\n\nAllow precise location, then try again.`)}
+async function requestWakeLock(){if(!document.getElementById('wakeLockToggle').checked||!('wakeLock'in navigator))return;try{wakeLock=await navigator.wakeLock.request('screen')}catch(_){wakeLock=null}} function releaseWakeLock(){if(wakeLock){wakeLock.release().catch(()=>{});wakeLock=null}}
+function startActivity(){if(!gpsReady||!lastPosition){enableGPS();return}isRecording=true;isPaused=false;lastAnnouncedMile=0;goalAnnounced=false;activityPoints=[{lat:lastPosition.lat,lng:lastPosition.lng,accuracy:lastPosition.accuracy,timestamp:Date.now()}];activityStartedAt=Date.now();pausedStartedAt=null;pausedTotalMs=0;clearDisplayPolyline();renderActivityPath();updateTrackStats();document.getElementById('gpsBtn').classList.add('hidden');document.getElementById('startBtn').classList.add('hidden');document.getElementById('recordControls').classList.remove('hidden');setStatus(`Recording ${activityType.toLowerCase()} — GPS is live.`);timerId=setInterval(()=>{updateTrackStats();checkAlerts()},1000);requestWakeLock()}
+function togglePause(){if(!isRecording)return;isPaused=!isPaused;const b=document.getElementById('pauseBtn');if(isPaused){pausedStartedAt=Date.now();b.textContent='▶ Resume';setStatus('Paused.')}else{if(pausedStartedAt)pausedTotalMs+=Date.now()-pausedStartedAt;pausedStartedAt=null;b.textContent='Ⅱ Pause';setStatus('Recording resumed.')}updateTrackStats()}
+function finishActivity(){if(!isRecording)return;if(isPaused&&pausedStartedAt){pausedTotalMs+=Date.now()-pausedStartedAt;pausedStartedAt=null}const elapsedMs=getElapsedMs(),miles=pathMeters(activityPoints)*MILES_PER_METER,defaultName=`${activityType} — ${new Date().toLocaleDateString()}`,name=prompt('Name this activity',defaultName)||defaultName;if(activityPoints.length>1||elapsedMs>5000){activities.unshift({id:Date.now(),name,type:activityType,date:new Date().toISOString(),distanceMiles:round(miles,3),elapsedSeconds:Math.max(0,Math.round(elapsedMs/1000)),paceSecondsPerMile:miles>.02?Math.round((elapsedMs/1000)/miles):null,coords:activityPoints.map(p=>[round(p.lat,6),round(p.lng,6)])});persist()}isRecording=false;isPaused=false;clearInterval(timerId);timerId=null;releaseWakeLock();document.getElementById('gpsBtn').classList.remove('hidden');document.getElementById('startBtn').classList.remove('hidden');document.getElementById('startBtn').disabled=!gpsReady;document.getElementById('recordControls').classList.add('hidden');document.getElementById('pauseBtn').textContent='Ⅱ Pause';setStatus(`Saved ${miles.toFixed(2)} mi ${activityType.toLowerCase()}.`);renderHistory();renderStats()}
+function getElapsedMs(){if(!activityStartedAt)return 0;const now=Date.now(),currentPause=isPaused&&pausedStartedAt?now-pausedStartedAt:0;return Math.max(0,now-activityStartedAt-pausedTotalMs-currentPause)} function pathMeters(points){let m=0;for(let i=1;i<points.length;i++){const a=Array.isArray(points[i-1])?points[i-1]:[points[i-1].lat,points[i-1].lng],b=Array.isArray(points[i])?points[i]:[points[i].lat,points[i].lng];m+=map.distance(a,b)}return m}
+function updateTrackStats(){const miles=pathMeters(activityPoints)*MILES_PER_METER,secs=Math.round(getElapsedMs()/1000);document.getElementById('distanceStat').textContent=miles.toFixed(2);document.getElementById('timeStat').textContent=formatDuration(secs);document.getElementById('paceStat').textContent=miles>.02?formatPace(secs/miles):'--:--'}
+function speak(t){if(!document.getElementById('voiceAlerts').checked||!('speechSynthesis'in window))return;window.speechSynthesis.cancel();window.speechSynthesis.speak(new SpeechSynthesisUtterance(t))} function checkAlerts(){if(!isRecording)return;const miles=pathMeters(activityPoints)*MILES_PER_METER,whole=Math.floor(miles);if(whole>lastAnnouncedMile&&whole>0){lastAnnouncedMile=whole;speak(`${whole} mile${whole===1?'':'s'}.`)}const goal=parseFloat(document.getElementById('distanceGoal').value);if(!goalAnnounced&&goal>0&&miles>=goal){goalAnnounced=true;speak(`Distance goal reached. ${goal} miles.`);setStatus(`Goal reached — ${goal} mi!`)}}
+function renderActivityPath(){if(activityPolyline)activityPolyline.remove();if(!activityPoints.length)return;activityPolyline=L.polyline(activityPoints.map(p=>[p.lat,p.lng]),{color:'#fc4c02',weight:6,opacity:.95,lineJoin:'round'}).addTo(map)}
+function addWaypoint(ll){buildPoints.push([ll.lat,ll.lng]);renderBuildRoute()} function addMyLocationToRoute(){if(!lastPosition){enableGPS();return}buildPoints.unshift([lastPosition.lat,lastPosition.lng]);renderBuildRoute();map.setView([lastPosition.lat,lastPosition.lng],16)} function undoWaypoint(){buildPoints.pop();renderBuildRoute()} function reverseRoute(){buildPoints.reverse();renderBuildRoute()} function closeLoop(){if(buildPoints.length<3)return;const first=buildPoints[0],last=buildPoints[buildPoints.length-1];if(map.distance(first,last)>3)buildPoints.push([...first]);renderBuildRoute()} function clearBuildRoute(){buildPoints=[];document.getElementById('routeName').value='';renderBuildRoute()}
+function renderBuildRoute(){if(buildPolyline)buildPolyline.remove();waypointMarkers.forEach(m=>m.remove());waypointMarkers=[];if(buildPoints.length){buildPolyline=L.polyline(buildPoints,{color:'#2ccf78',weight:6,opacity:.95,lineJoin:'round'}).addTo(map);buildPoints.forEach((p,i)=>waypointMarkers.push(L.circleMarker(p,{radius:i===0?7:5,color:'#fff',weight:2,fillColor:i===0?'#2ccf78':'#121821',fillOpacity:1}).addTo(map)))}const miles=pathMeters(buildPoints)*MILES_PER_METER;document.getElementById('buildDistance').textContent=miles.toFixed(2);document.getElementById('waypointCount').textContent=buildPoints.length;const goal=parseFloat(document.getElementById('distanceGoal').value);document.getElementById('routeGoal').textContent=goal>0?`${Math.max(0,goal-miles).toFixed(1)} left`:'—'}
+function saveBuiltRoute(){if(buildPoints.length<2){alert('Tap at least two points on the map first.');return}const miles=pathMeters(buildPoints)*MILES_PER_METER,entered=document.getElementById('routeName').value.trim(),name=entered||`Custom Route — ${miles.toFixed(1)} mi`;routes.unshift({id:Date.now(),name,date:new Date().toISOString(),distanceMiles:round(miles,3),coords:buildPoints.map(p=>[round(p[0],6),round(p[1],6)])});persist();document.getElementById('routeName').value='';setStatus(`Saved route: ${name}`);renderHistory();renderStats()}
+function setHistoryFilter(filter){historyFilter=filter;document.querySelectorAll('.filterbtn').forEach(b=>b.classList.toggle('active',b.dataset.filter===filter));renderHistory()}
+function renderHistory(){const list=document.getElementById('historyList');list.innerHTML='';if(historyFilter==='Routes'){renderRouteCards(list,routes);return}const filtered=historyFilter==='All'?activities:activities.filter(a=>(a.type||'Activity')===historyFilter);if(!filtered.length){list.innerHTML='<div class="tiny">Nothing here yet.</div>';return}filtered.forEach(activity=>{const actualIndex=activities.indexOf(activity),el=document.createElement('div');el.className='card';el.innerHTML=`<div class="cardTop"><div><div class="cardTitle">${escapeHtml(activity.name)}</div><div class="cardMeta">${escapeHtml(activity.type||'Activity')} • ${new Date(activity.date).toLocaleString()}</div></div><button class="iconBtn" onclick="deleteActivity(${actualIndex})">🗑</button></div><div class="metrics"><div class="metric"><strong>${Number(activity.distanceMiles||0).toFixed(2)}</strong><span>MILES</span></div><div class="metric"><strong>${formatDuration(activity.elapsedSeconds||0)}</strong><span>TIME</span></div><div class="metric"><strong>${activity.paceSecondsPerMile?formatPace(activity.paceSecondsPerMile):'--:--'}</strong><span>PACE</span></div></div><div class="row" style="margin-top:8px"><button class="btn secondary grow" onclick="showActivity(${actualIndex})">Show on map</button></div>`;list.appendChild(el)})}
+function renderRouteCards(list,data){if(!data.length){list.innerHTML='<div class="tiny">No saved routes yet.</div>';return}data.forEach(route=>{const i=routes.indexOf(route),el=document.createElement('div');el.className='card';el.innerHTML=`<div class="cardTop"><div><div class="cardTitle">${escapeHtml(route.name)}</div><div class="cardMeta">${new Date(route.date).toLocaleDateString()} • ${Number(route.distanceMiles||0).toFixed(2)} mi</div></div><button class="iconBtn" onclick="deleteRoute(${i})">🗑</button></div><div class="row" style="margin-top:8px"><button class="btn secondary grow" onclick="showRoute(${i})">Show map</button><button class="btn primary grow" onclick="useRoute(${i})">Edit route</button></div>`;list.appendChild(el)})}
+function renderStats(){const now=Date.now(),day=86400000,within=d=>now-new Date(d).getTime();const week=activities.filter(a=>within(a.date)<=7*day),month=activities.filter(a=>within(a.date)<=30*day),sum=a=>a.reduce((t,x)=>t+Number(x.distanceMiles||0),0);document.getElementById('weekMiles').textContent=sum(week).toFixed(1);document.getElementById('monthMiles').textContent=sum(month).toFixed(1);document.getElementById('totalActivities').textContent=activities.length;document.getElementById('longestActivity').textContent=(activities.length?Math.max(...activities.map(a=>Number(a.distanceMiles||0))):0).toFixed(1);const runs=activities.filter(a=>a.type==='Run'&&a.paceSecondsPerMile);document.getElementById('avgRunPace').textContent=runs.length?formatPace(runs.reduce((t,a)=>t+a.paceSecondsPerMile,0)/runs.length):'--:--';const routeList=document.getElementById('savedRouteList');routeList.innerHTML='';renderRouteCards(routeList,routes.slice(0,5))}
+function showRoute(i){const r=routes[i];if(!r)return;showCoords(r.coords,'#2ccf78');setStatus(`${r.name} — ${Number(r.distanceMiles||0).toFixed(2)} mi`)} function showActivity(i){const a=activities[i];if(!a)return;showCoords(a.coords,'#fc4c02');setStatus(`${a.name} — ${Number(a.distanceMiles||0).toFixed(2)} mi`)} function showCoords(coords,color){clearDisplayPolyline();if(!coords||!coords.length)return;displayPolyline=L.polyline(coords,{color,weight:6,opacity:.95}).addTo(map);map.fitBounds(displayPolyline.getBounds(),{padding:[20,20]})} function useRoute(i){const r=routes[i];if(!r)return;buildPoints=r.coords.map(p=>[p[0],p[1]]);document.getElementById('routeName').value=r.name;setMode('route');renderBuildRoute();if(buildPolyline)map.fitBounds(buildPolyline.getBounds(),{padding:[20,20]})}
+function deleteRoute(i){if(!confirm('Delete this saved route?'))return;routes.splice(i,1);persist();clearDisplayPolyline();renderHistory();renderStats()} function deleteActivity(i){if(!confirm('Delete this activity?'))return;activities.splice(i,1);persist();clearDisplayPolyline();renderHistory();renderStats()}
+function centerOnMe(){if(!lastPosition){enableGPS();return}map.setView([lastPosition.lat,lastPosition.lng],17,{animate:true})} function fitActivePath(){let layer=null;if(mode==='track'&&activityPolyline&&activityPoints.length>1)layer=activityPolyline;if(mode==='route'&&buildPolyline&&buildPoints.length>1)layer=buildPolyline;if((mode==='history'||mode==='stats')&&displayPolyline)layer=displayPolyline;if(layer)map.fitBounds(layer.getBounds(),{padding:[20,20]});else centerOnMe()} function toggleFollow(){followMe=!followMe;const b=document.getElementById('followBtn');b.classList.toggle('active',followMe);b.textContent=followMe?'◎ Follow':'○ Free';if(followMe)centerOnMe()} function clearDisplayPolyline(){if(displayPolyline){displayPolyline.remove();displayPolyline=null}}
+function exportData(){const payload={exportedAt:new Date().toISOString(),routes,activities},blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`run-fw-export-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)}
+function formatDuration(seconds){seconds=Math.max(0,Math.round(Number(seconds)||0));const h=Math.floor(seconds/3600),m=Math.floor((seconds%3600)/60),s=seconds%60;return h>0?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`} function formatPace(v){const total=Math.max(0,Math.round(Number(v)||0)),m=Math.floor(total/60),s=total%60;return`${m}:${String(s).padStart(2,'0')}`} function round(v,p){const f=10**p;return Math.round(v*f)/f} function escapeHtml(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+window.addEventListener('load',()=>{initMap();renderHistory();renderStats();updateTrackStats()});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&isRecording)requestWakeLock()});
+</script>
 </body>
 </html>
