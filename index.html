@@ -4,15 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#111827">
-  <meta name="description" content="Stride FW live GPS activity tracker, route planner, sharing, crews, and health dashboard">
-  <meta name="stride-build" content="2026.07.24-4">
+  <meta name="description" content="Stride FW live GPS activity tracker, road-following route planner, training plans, sharing and crews">
+  <meta name="stride-build" content="2026.07.24-5">
   <title>Stride FW — Run & Route Tracker</title>
   <link rel="preconnect" href="https://unpkg.com">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="styles.css?v=20260724-4">
-  <link rel="stylesheet" href="social.css?v=20260724-4">
+  <link rel="stylesheet" href="styles.css?v=20260724-5">
+  <link rel="stylesheet" href="social.css?v=20260724-5">
+  <link rel="stylesheet" href="route-plans.css?v=20260724-5">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=20260724-4" defer></script>
+  <script src="app.js?v=20260724-5" defer></script>
+  <script src="route-plans.js?v=20260724-5" defer></script>
+  <script src="plans-storage.js?v=20260724-5" defer></script>
 </head>
 <body>
 <main class="app">
@@ -49,18 +52,38 @@
   </section>
 
   <section id="screen-plan" class="screen">
-    <h2 class="sectionTitle">Plan a route</h2><p class="sectionSub">Tap the map to draw your own route, then save or share it.</p>
+    <h2 class="sectionTitle">Plan a route</h2><p class="sectionSub">Tap where you want to go. Stride FW will connect your stops using mapped roads and paths.</p>
+    <div class="routeModes">
+      <button class="routeMode active" data-mode="walk" onclick="setRouteMode('walk',this)">🚶 Walk</button>
+      <button class="routeMode" data-mode="run" onclick="setRouteMode('run',this)">🏃 Run</button>
+      <button class="routeMode" data-mode="ride" onclick="setRouteMode('ride',this)">🚲 Ride</button>
+    </div>
     <div class="mapCard">
-      <div class="mapTop"><div class="mapStatus">Tap anywhere on the map to add a point.</div><div id="planBadge" class="gpsBadge">0 points</div></div>
+      <div class="mapTop"><div id="planStatus" class="mapStatus">Tap the map to add your first stop.</div><div id="planBadge" class="gpsBadge">0 stops • Walk</div></div>
       <div class="mapWrap"><div id="planMap"></div><div class="mapTools"><button onclick="planCenterOnMe()" aria-label="Center on me">⌖</button><button onclick="fitPlan()" aria-label="Fit route">⛶</button></div></div>
     </div>
+    <div class="routingNote"><span id="routingDot" class="routingDot"></span><span>Road/path routing uses OpenStreetMap routing data. Tap only the stops you care about.</span></div>
     <div class="panel">
-      <div class="planStats"><div class="planStat"><b id="planDistance">0.00 mi</b><span>Planned distance</span></div><div class="planStat"><b id="planPointsCount">0</b><span>Waypoints</span></div></div>
+      <div class="planStats"><div class="planStat"><b id="planDistance">0.00 mi</b><span>Planned distance</span></div><div class="planStat"><b id="planPointsCount">0</b><span>Stops</span></div></div>
       <div class="grid3"><button class="btn secondary" onclick="addMyLocationToPlan()">⌖ Me</button><button class="btn secondary" onclick="undoPlan()">↶ Undo</button><button class="btn secondary" onclick="reversePlan()">⇄ Reverse</button></div>
       <div class="grid2" style="margin-top:8px"><button class="btn secondary" onclick="closePlan()">↻ Close loop</button><button class="btn danger" onclick="clearPlan()">Clear</button></div>
       <div class="grid2" style="margin-top:8px"><input id="routeName" type="text" placeholder="Route name"><button class="btn primary" onclick="savePlan()">Save route</button></div>
       <button class="btn shareWide" style="margin-top:8px" onclick="shareCurrentPlan()">↗ Share this route</button>
     </div>
+  </section>
+
+  <section id="screen-plans" class="screen">
+    <h2 class="sectionTitle">Training plans</h2><p class="sectionSub">Pick a simple plan and follow it at your own pace. Walk, run, ride, or mix in workouts.</p>
+    <div id="activePlan" class="activePlan"></div>
+    <div class="planFilters">
+      <button class="planFilter active" data-filter="all" onclick="showTrainingFilter('all',this)">All</button>
+      <button class="planFilter" data-filter="walk" onclick="showTrainingFilter('walk',this)">🚶 Walk</button>
+      <button class="planFilter" data-filter="run" onclick="showTrainingFilter('run',this)">🏃 Run</button>
+      <button class="planFilter" data-filter="ride" onclick="showTrainingFilter('ride',this)">🚲 Ride</button>
+      <button class="planFilter" data-filter="workout" onclick="showTrainingFilter('workout',this)">💪 Workout</button>
+    </div>
+    <div id="trainingList" class="trainingList"></div>
+    <p class="hint">Plans are general fitness templates, not medical advice. Choose the level that fits you, take rest days as needed, and stop or modify exercise that causes pain.</p>
   </section>
 
   <section id="screen-history" class="screen">
@@ -69,21 +92,9 @@
     <div id="historyList" class="historyList"></div>
   </section>
 
-  <section id="screen-stats" class="screen">
-    <h2 class="sectionTitle">Stats</h2><p class="sectionSub">Simple numbers that show your progress.</p>
-    <div class="statGrid">
-      <div class="statBox"><b id="stat7">0.0</b><span>Last 7 days</span></div><div class="statBox"><b id="stat30">0.0</b><span>Last 30 days</span></div>
-      <div class="statBox"><b id="statTotal">0.0</b><span>Total distance</span></div><div class="statBox"><b id="statCount">0</b><span>Activities</span></div>
-      <div class="statBox"><b id="statLongest">0.0</b><span>Longest activity</span></div><div class="statBox"><b id="statPace">--:--</b><span>Average run pace</span></div>
-    </div>
-  </section>
-
   <section id="screen-crew" class="screen">
     <h2 class="sectionTitle">Crew</h2><p class="sectionSub">Invite family and friends to your Stride FW group.</p>
-    <div class="panel crewHero">
-      <div class="crewIcon">👥</div>
-      <div><b id="crewTitle">No crew yet</b><p id="crewStatus" class="hint">Create a crew or join one with an invite code.</p></div>
-    </div>
+    <div class="panel crewHero"><div class="crewIcon">👥</div><div><b id="crewTitle">No crew yet</b><p id="crewStatus" class="hint">Create a crew or join one with an invite code.</p></div></div>
     <div class="panel">
       <label class="fieldLabel">Your name</label><input id="crewNameInput" type="text" placeholder="Your name">
       <label class="fieldLabel">Crew code</label><input id="crewCodeInput" type="text" maxlength="8" placeholder="Example: RUNFW67">
@@ -91,30 +102,19 @@
       <div class="grid2" style="margin-top:8px"><button class="btn shareWide" onclick="shareCrew()">↗ Invite friends</button><button class="btn secondary" onclick="shareMySpot()">📍 Share my spot</button></div>
       <button class="btn secondary" style="width:100%;margin-top:8px" onclick="leaveCrew()">Leave crew</button>
     </div>
-    <div class="panel">
-      <div class="panelHeading">Crew location</div>
-      <p class="hint"><b>Share my spot</b> sends a one-time GPS location now. Real-time moving friend dots are the next cloud-sync step.</p>
-      <div class="privacyRow"><span>🔒</span><div><b>Live location will stay opt-in</b><p>Only while a member explicitly chooses to share or is actively tracking.</p></div></div>
-    </div>
+    <div class="panel"><div class="panelHeading">Crew location</div><p class="hint"><b>Share my spot</b> sends a one-time GPS location now. Real-time moving friend dots are the next cloud-sync step.</p><div class="privacyRow"><span>🔒</span><div><b>Live location will stay opt-in</b><p>Only while a member explicitly chooses to share or is actively tracking.</p></div></div></div>
   </section>
 
   <section id="screen-more" class="screen">
-    <h2 class="sectionTitle">Settings & Health</h2><p class="sectionSub">Customize Stride FW and connect health data.</p>
-
-    <div class="panel healthPanel">
-      <div class="healthHeader"><div><div class="panelHeading">Fitbit / Google Health</div><p class="hint">Health data from supported Fitbit devices, Pixel Watches and other connected sources.</p></div><div id="healthStatus" class="healthStatus">Not connected</div></div>
-      <div class="healthGrid">
-        <div class="healthTile"><b id="healthSteps">—</b><span>Steps</span></div>
-        <div class="healthTile"><b id="healthHeart">—</b><span>Resting HR</span></div>
-        <div class="healthTile"><b id="healthSleep">—</b><span>Sleep</span></div>
-        <div class="healthTile"><b id="healthSpO2">—</b><span>SpO₂</span></div>
-        <div class="healthTile"><b id="healthHRV">—</b><span>HRV</span></div>
-        <div class="healthTile"><b id="healthVO2">—</b><span>VO₂ Max</span></div>
+    <h2 class="sectionTitle">Stats & Settings</h2><p class="sectionSub">See your progress and customize Stride FW.</p>
+    <div class="panel">
+      <div class="statsHeading">Your activity stats</div>
+      <div class="statGrid">
+        <div class="statBox"><b id="stat7">0.0</b><span>Last 7 days</span></div><div class="statBox"><b id="stat30">0.0</b><span>Last 30 days</span></div>
+        <div class="statBox"><b id="statTotal">0.0</b><span>Total distance</span></div><div class="statBox"><b id="statCount">0</b><span>Activities</span></div>
+        <div class="statBox"><b id="statLongest">0.0</b><span>Longest activity</span></div><div class="statBox"><b id="statPace">--:--</b><span>Average run pace</span></div>
       </div>
-      <div class="grid2" style="margin-top:9px"><button class="btn healthConnectBtn" onclick="startHealthConnect()">Connect Health</button><button class="btn secondary" onclick="refreshHealth()">Refresh</button></div>
-      <p class="hint"><b>Updated for 2026:</b> Stride FW now targets Google Health API, the successor to Fitbit Web API. Secure OAuth and health tokens will live on the backend, never in this public website.</p>
     </div>
-
     <div class="panel">
       <div class="setting"><div class="settingText"><b>Units</b><span>Miles or kilometers</span></div><select id="unitsSelect" style="width:120px" onchange="changeUnits(this.value)"><option value="mi">Miles</option><option value="km">Kilometers</option></select></div>
       <div class="setting"><div class="settingText"><b>Voice distance alerts</b><span>Speak each mile or kilometer</span></div><input id="voiceToggle" class="switch" type="checkbox" checked onchange="saveSettings()"></div>
@@ -122,16 +122,16 @@
       <div class="setting"><div class="settingText"><b>Follow my location</b><span>Keep the map centered on you</span></div><input id="followToggle" class="switch" type="checkbox" checked onchange="saveSettings()"></div>
     </div>
     <div class="panel"><div class="grid2"><button class="btn shareWide" onclick="shareApp()">↗ Share Stride FW</button><button class="btn secondary" onclick="exportData()">Export data</button></div><button class="btn danger" style="width:100%;margin-top:8px" onclick="clearAllData()">Clear all data</button></div>
-    <p class="hint">Activities and routes are stored locally in this browser. Export a backup before clearing browser data.</p>
-    <p class="hint" style="text-align:center">Stride FW build 2026.07.24-4</p>
+    <p class="hint">Activities, routes, crews and training progress are stored locally in this browser.</p>
+    <p class="hint" style="text-align:center">Stride FW build 2026.07.24-5</p>
   </section>
 </main>
 
 <nav class="bottomNav">
   <button id="nav-track" class="navBtn active" onclick="showScreen('track')"><i>▶</i>Track</button>
-  <button id="nav-plan" class="navBtn" onclick="showScreen('plan')"><i>⌁</i>Plan</button>
+  <button id="nav-plan" class="navBtn" onclick="showScreen('plan')"><i>⌁</i>Route</button>
+  <button id="nav-plans" class="navBtn" onclick="showScreen('plans')"><i>✓</i>Plans</button>
   <button id="nav-history" class="navBtn" onclick="showScreen('history')"><i>☷</i>History</button>
-  <button id="nav-stats" class="navBtn" onclick="showScreen('stats')"><i>▥</i>Stats</button>
   <button id="nav-more" class="navBtn" onclick="showScreen('more')"><i>⚙</i>More</button>
 </nav>
 <div id="toastBox" class="toast"></div>
