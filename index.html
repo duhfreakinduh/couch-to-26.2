@@ -1,265 +1,333 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Joshua’s Fort Worth Run Tracker</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f14" />
+  <title>Run FW — Live GPS + Route Builder</title>
+  <link rel="preconnect" href="https://unpkg.com" />
+  <link rel="preconnect" href="https://tile.openstreetmap.org" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
-    body { font-family: system-ui, sans-serif; }
-    #routeMap { height: 520px; width: 100%; }
-    .live-dot {
-      animation: pulse-ring 2.2s infinite ease-in-out;
+    :root {
+      --bg: #0b0f14;
+      --panel: #131a22;
+      --panel2: #1a232e;
+      --text: #f7fafc;
+      --muted: #91a0b2;
+      --accent: #fc4c02;
+      --green: #25c26e;
+      --yellow: #f6c744;
+      --red: #ef5350;
+      --blue: #4da3ff;
+      --border: rgba(255,255,255,.08);
+      --shadow: 0 12px 34px rgba(0,0,0,.28);
     }
-    @keyframes pulse-ring {
-      0% { box-shadow: 0 0 0 0 rgba(59,130,246,0.95); }
-      70% { box-shadow: 0 0 0 50px rgba(59,130,246,0); }
-      100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .app { max-width: 980px; margin: 0 auto; padding: 14px 14px calc(98px + env(safe-area-inset-bottom)); }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 12px; }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .logo { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; background: var(--accent); font-size: 22px; font-weight: 900; box-shadow: var(--shadow); }
+    h1 { font-size: clamp(20px, 5vw, 30px); line-height: 1; margin: 0; letter-spacing: -.7px; }
+    .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .pill { border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 999px; padding: 9px 12px; font-weight: 800; }
+    .pill.active { background: rgba(252,76,2,.14); color: #ff7a3f; border-color: rgba(252,76,2,.35); }
+    .modebar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .modebtn { border: 1px solid var(--border); background: var(--panel); color: var(--muted); border-radius: 14px; padding: 12px 8px; font-weight: 900; }
+    .modebtn.active { background: var(--accent); color: #fff; border-color: transparent; }
+    .mapShell { position: relative; background: var(--panel); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; box-shadow: var(--shadow); }
+    #map { height: min(64vh, 610px); min-height: 390px; width: 100%; }
+    .mapBadge { position: absolute; z-index: 800; top: 12px; left: 12px; max-width: calc(100% - 24px); padding: 9px 12px; border-radius: 12px; background: rgba(11,15,20,.88); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.12); font-size: 12px; font-weight: 800; }
+    .accuracy { position: absolute; z-index: 800; top: 12px; right: 12px; padding: 8px 10px; border-radius: 12px; background: rgba(11,15,20,.88); border: 1px solid rgba(255,255,255,.12); font-size: 11px; color: var(--muted); }
+    .mapActions { position: absolute; right: 12px; bottom: 12px; z-index: 800; display: grid; gap: 8px; }
+    .mapAction { width: 46px; height: 46px; border-radius: 50%; border: 1px solid rgba(255,255,255,.15); background: rgba(11,15,20,.9); color: white; font-size: 19px; box-shadow: var(--shadow); }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+    .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 13px 10px; text-align: center; }
+    .statValue { font-size: clamp(20px, 6vw, 32px); font-weight: 950; letter-spacing: -1px; }
+    .statLabel { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .9px; font-weight: 900; margin-top: 3px; }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 22px; padding: 14px; margin-top: 12px; }
+    .panelTitle { margin: 0 0 10px; font-size: 17px; }
+    .row { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
+    .grow { flex: 1 1 160px; }
+    .primary, .secondary, .danger, .good, .warn { border: 0; border-radius: 15px; padding: 13px 15px; font-weight: 950; min-height: 48px; }
+    .primary { background: var(--accent); color: #fff; }
+    .good { background: var(--green); color: #07160d; }
+    .warn { background: var(--yellow); color: #171103; }
+    .danger { background: var(--red); color: #fff; }
+    .secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+    .primary:disabled, .secondary:disabled, .danger:disabled, .good:disabled, .warn:disabled { opacity: .45; cursor: not-allowed; }
+    select, input[type="text"] { width: 100%; min-height: 46px; border: 1px solid var(--border); border-radius: 14px; background: var(--panel2); color: var(--text); padding: 0 12px; outline: none; }
+    .tiny { color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .hidden { display: none !important; }
+    .list { display: grid; gap: 9px; }
+    .card { border: 1px solid var(--border); background: var(--panel2); border-radius: 17px; padding: 12px; }
+    .cardTop { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .cardTitle { font-weight: 900; }
+    .cardMeta { color: var(--muted); font-size: 12px; margin-top: 3px; }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 10px; }
+    .metric { background: rgba(255,255,255,.035); border-radius: 10px; padding: 7px; text-align: center; }
+    .metric strong { display: block; font-size: 14px; }
+    .metric span { display: block; color: var(--muted); font-size: 10px; margin-top: 2px; }
+    .iconBtn { border: 0; background: transparent; color: var(--muted); padding: 5px; font-size: 16px; }
+    .routeSummary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .routeSummary > div { border-radius: 14px; padding: 11px; background: var(--panel2); }
+    .routeSummary b { font-size: 22px; display: block; }
+    .routeSummary span { color: var(--muted); font-size: 11px; }
+    .liveDot { animation: pulse 1.8s infinite; }
+    @keyframes pulse { 0%{filter: drop-shadow(0 0 0 rgba(77,163,255,.8));} 50%{filter: drop-shadow(0 0 10px rgba(77,163,255,.9));} 100%{filter: drop-shadow(0 0 0 rgba(77,163,255,.8));} }
+    .leaflet-control-attribution { font-size: 9px !important; }
+    .leaflet-container { background: #101820; }
+    @media (max-width: 560px) {
+      .app { padding-left: 10px; padding-right: 10px; }
+      .topbar { margin-top: 2px; }
+      #map { min-height: 430px; height: 58vh; }
+      .stats { gap: 6px; }
+      .stat { padding: 11px 6px; border-radius: 15px; }
+      .panel { border-radius: 18px; padding: 12px; }
     }
   </style>
 </head>
-<body class="bg-gray-950 text-gray-100 min-h-screen">
-  <div class="max-w-4xl mx-auto p-6">
-
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-8">
-      <div>
-        <h1 class="text-4xl font-bold flex items-center gap-3"><span class="text-green-500">🏃‍♂️</span> Joshua’s Fort Worth Run Tracker</h1>
-        <p class="text-gray-400">Live GPS + Manual Path Drawing • Save & reload any route</p>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand"><div class="logo">R</div><div><h1>Run FW</h1><div class="sub">Live GPS tracker + custom route builder</div></div></div>
+      <button id="followBtn" class="pill active" type="button" onclick="toggleFollow()">◎ Follow</button>
+    </header>
+    <nav class="modebar" aria-label="App modes">
+      <button class="modebtn active" id="modeTrack" onclick="setMode('track')">TRACK</button>
+      <button class="modebtn" id="modeBuild" onclick="setMode('build')">BUILD</button>
+      <button class="modebtn" id="modeSaved" onclick="setMode('saved')">SAVED</button>
+    </nav>
+    <section class="mapShell">
+      <div id="mapStatus" class="mapBadge">Ready — enable GPS to find yourself.</div>
+      <div id="accuracyBadge" class="accuracy">GPS —</div>
+      <div id="map"></div>
+      <div class="mapActions"><button class="mapAction" onclick="centerOnMe()" aria-label="Center on my location" title="Center on me">⌖</button><button class="mapAction" onclick="fitActivePath()" aria-label="Fit route on map" title="Fit route">⛶</button></div>
+    </section>
+    <section id="trackView">
+      <div class="stats">
+        <div class="stat"><div id="distanceStat" class="statValue">0.00</div><div class="statLabel">Miles</div></div>
+        <div class="stat"><div id="timeStat" class="statValue">00:00</div><div class="statLabel">Time</div></div>
+        <div class="stat"><div id="paceStat" class="statValue">--:--</div><div class="statLabel">Pace / mi</div></div>
       </div>
-      <button onclick="toggleDark()" class="p-3 bg-gray-800 rounded-xl"><i id="theme-icon" class="fas fa-moon text-xl"></i></button>
-    </div>
-
-    <!-- Map -->
-    <div class="bg-gray-900 rounded-3xl p-4 mb-6">
-      <div id="mapStatus" class="text-sm font-medium text-yellow-400 mb-3 text-center">Tap Enable Live GPS or start drawing manually</div>
-      <div id="routeMap" class="rounded-3xl overflow-hidden shadow-2xl"></div>
-    </div>
-
-    <!-- Controls -->
-    <div class="flex flex-wrap gap-3 mb-8">
-      <button onclick="enableLiveGPS()" id="enableBtn" class="flex-1 bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-bold text-lg">📍 Enable Live GPS</button>
-      <button onclick="startRecording()" id="recordBtn" class="flex-1 bg-green-500 hover:bg-green-600 py-4 rounded-2xl font-bold text-lg hidden">▶️ Start Live Recording</button>
-      <button onclick="toggleManualDraw()" id="manualBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-500 py-4 rounded-2xl font-bold text-lg">✍️ Manual Draw Mode</button>
-      <button onclick="pauseRecording()" id="pauseBtn" class="flex-1 bg-yellow-500 hover:bg-yellow-600 py-4 rounded-2xl font-bold text-lg hidden">⏸️ Pause</button>
-      <button onclick="stopRecording()" id="stopBtn" class="flex-1 bg-red-500 hover:bg-red-600 py-4 rounded-2xl font-bold text-lg hidden">⏹️ Finish & Save</button>
-      <button onclick="saveCurrentPath()" id="saveBtn" class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-4 rounded-2xl font-bold text-lg hidden">💾 Save Current Path</button>
-      <button onclick="clearLine()" class="flex-1 bg-gray-700 hover:bg-gray-600 py-4 rounded-2xl font-bold text-lg">Clear Line</button>
-      <button onclick="centerOnMe()" class="flex-1 bg-purple-600 hover:bg-purple-500 py-4 rounded-2xl font-bold text-lg">Center on Me</button>
-    </div>
-
-    <!-- Follow + Distance -->
-    <div class="flex items-center justify-between bg-gray-900 rounded-3xl p-6 mb-8">
-      <label class="flex items-center gap-3 text-lg font-medium">
-        <input type="checkbox" id="followToggle" onchange="toggleFollow()" checked class="w-6 h-6 accent-green-500">
-        Follow Me
-      </label>
-      <span id="liveDistance" class="text-4xl font-bold text-green-400">0.0 mi</span>
-    </div>
-
-    <!-- Saved Routes -->
-    <div class="bg-gray-900 rounded-3xl p-8">
-      <h4 class="font-semibold text-xl mb-5">Saved Routes (Manual or Live)</h4>
-      <div id="savedRoutesList" class="space-y-3"></div>
-    </div>
-
-    <!-- Footer -->
-    <div class="text-center text-gray-500 text-sm mt-12">
-      Built for Joshua in Fort Worth • Tap to draw manual paths • Add to home screen!<br>
-      <button onclick="exportLog()" class="underline mt-2">Export all saved routes</button>
-    </div>
-  </div>
-
+      <div class="panel">
+        <div class="row">
+          <select id="activityType" class="grow" aria-label="Activity type"><option value="Run">Run</option><option value="Walk">Walk</option><option value="Ride">Ride</option></select>
+          <button id="gpsBtn" class="secondary grow" onclick="enableGPS()">📍 Enable GPS</button>
+        </div>
+        <div class="row" style="margin-top:9px"><button id="startBtn" class="good grow" onclick="startActivity()" disabled>▶ Start</button><button id="pauseBtn" class="warn grow hidden" onclick="togglePause()">Ⅱ Pause</button><button id="finishBtn" class="danger grow hidden" onclick="finishActivity()">■ Finish</button></div>
+        <p class="tiny" style="margin-bottom:0">For the best phone tracking, allow precise location and keep location services on. GPS accuracy varies by device, buildings, trees, and signal.</p>
+      </div>
+    </section>
+    <section id="buildView" class="hidden">
+      <div class="panel">
+        <h2 class="panelTitle">Build a custom route</h2>
+        <div class="routeSummary"><div><b id="buildDistance">0.00 mi</b><span>Planned distance</span></div><div><b id="waypointCount">0</b><span>Waypoints</span></div></div>
+        <p class="tiny">Tap the map to drop waypoints. They connect in order so you can sketch a neighborhood loop, out-and-back, or training route.</p>
+        <div class="row"><button class="secondary grow" onclick="undoWaypoint()">↶ Undo</button><button class="secondary grow" onclick="closeLoop()">↻ Close Loop</button><button class="danger grow" onclick="clearBuildRoute()">Clear</button></div>
+        <div class="row" style="margin-top:9px"><input id="routeName" class="grow" type="text" placeholder="Route name, e.g. 3 Mile Neighborhood Loop" /><button class="primary grow" onclick="saveBuiltRoute()">Save Route</button></div>
+      </div>
+    </section>
+    <section id="savedView" class="hidden">
+      <div class="panel"><div class="row" style="justify-content:space-between"><h2 class="panelTitle" style="margin:0">Saved routes</h2><button class="secondary" style="min-height:auto;padding:9px 11px" onclick="exportData()">Export</button></div><div id="routeList" class="list" style="margin-top:10px"></div></div>
+      <div class="panel"><h2 class="panelTitle">Activity history</h2><div id="activityList" class="list"></div></div>
+    </section>
+  </main>
   <script>
-    let map = null;
-    let locationMarker = null;
-    let recordingPolyline = null;
-    let recordingPoints = [];
-    let isRecording = false;
-    let isManualDraw = false;
-    let isPaused = false;
-    let followMe = true;
-    let watchId = null;
-    let savedRoutes = JSON.parse(localStorage.getItem('savedRoutes') || '[]');
+    const MILES_PER_METER = 0.000621371;
+    const STORAGE_ACTIVITIES = 'runfw.activities.v2';
+    const STORAGE_ROUTES = 'runfw.routes.v2';
+    let map, userMarker, accuracyCircle, activityPolyline, buildPolyline, displayPolyline;
+    let watchId = null, gpsReady = false, lastPosition = null, followMe = true, mode = 'track';
+    let isRecording = false, isPaused = false, activityPoints = [], activityStartedAt = null, pausedStartedAt = null, pausedTotalMs = 0, timerId = null;
+    let buildPoints = [], waypointMarkers = [];
+    let activities = loadJson(STORAGE_ACTIVITIES), routes = loadJson(STORAGE_ROUTES);
+
+    function loadJson(key) { try { const value = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(value) ? value : []; } catch (_) { return []; } }
+    function persist() { localStorage.setItem(STORAGE_ACTIVITIES, JSON.stringify(activities)); localStorage.setItem(STORAGE_ROUTES, JSON.stringify(routes)); }
 
     function initMap() {
-      if (map) { map.invalidateSize(); return; }
-      map = L.map('routeMap').setView([32.7688, -97.3093], 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-      }).addTo(map);
-
-      map.on('click', e => {
-        if (isManualDraw || (isRecording && !isPaused)) {
-          recordingPoints.push(e.latlng);
-          redrawRecordingLine();
-          updateLiveDistance();
-          showSaveButton();
-        }
-      });
+      map = L.map('map', { zoomControl: false }).setView([32.7555, -97.3308], 13);
+      L.control.zoom({ position: 'bottomleft' }).addTo(map);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+      map.on('click', e => { if (mode === 'build') addWaypoint(e.latlng); });
     }
 
-    function enableLiveGPS() {
-      document.getElementById('enableBtn').classList.add('hidden');
-      document.getElementById('recordBtn').classList.remove('hidden');
-      document.getElementById('mapStatus').textContent = "Requesting location...";
-      if (watchId) return;
-      watchId = navigator.geolocation.watchPosition(
-        pos => {
-          const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude);
-          if (!locationMarker) {
-            locationMarker = L.circleMarker(latlng, {radius: 11, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 1, weight: 5, className: 'live-dot'}).addTo(map);
-          } else {
-            locationMarker.setLatLng(latlng);
-          }
-          if (followMe && map) map.flyTo(latlng, map.getZoom(), {animate: true});
-          if (isRecording && !isPaused) {
-            recordingPoints.push(latlng);
-            redrawRecordingLine();
-            updateLiveDistance();
-            showSaveButton();
-          }
-          document.getElementById('mapStatus').textContent = "✅ Live GPS active • Big pulsing dot on";
-        },
-        err => alert("GPS error: " + err.message + "\n\nAllow location in browser settings."),
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-      );
+    function setMode(nextMode) {
+      mode = nextMode;
+      document.getElementById('trackView').classList.toggle('hidden', nextMode !== 'track');
+      document.getElementById('buildView').classList.toggle('hidden', nextMode !== 'build');
+      document.getElementById('savedView').classList.toggle('hidden', nextMode !== 'saved');
+      ['Track','Build','Saved'].forEach(name => document.getElementById('mode' + name).classList.toggle('active', nextMode === name.toLowerCase()));
+      clearDisplayPolyline();
+      if (nextMode === 'build') { document.getElementById('mapStatus').textContent = 'BUILD mode — tap the map to add waypoints.'; renderBuildRoute(); }
+      else if (nextMode === 'track') { document.getElementById('mapStatus').textContent = gpsReady ? 'GPS ready — press Start when you are ready.' : 'Ready — enable GPS to find yourself.'; renderActivityPath(); }
+      else { document.getElementById('mapStatus').textContent = 'Tap a saved route or activity to show it on the map.'; renderSaved(); }
+      setTimeout(() => map.invalidateSize(), 40);
     }
 
-    function startRecording() {
-      isRecording = true;
-      isManualDraw = false;
-      isPaused = false;
-      recordingPoints = [];
-      if (recordingPolyline) recordingPolyline.remove();
-      document.getElementById('recordBtn').classList.add('hidden');
-      document.getElementById('pauseBtn').classList.remove('hidden');
-      document.getElementById('stopBtn').classList.remove('hidden');
-      document.getElementById('manualBtn').classList.add('hidden');
-      document.getElementById('mapStatus').textContent = "Live recording active — move to draw green path";
+    function enableGPS() {
+      if (!navigator.geolocation) { alert('This browser does not support GPS location.'); return; }
+      document.getElementById('mapStatus').textContent = 'Requesting precise location…';
+      document.getElementById('gpsBtn').disabled = true;
+      if (watchId !== null) { gpsReady = true; document.getElementById('startBtn').disabled = false; return; }
+      watchId = navigator.geolocation.watchPosition(handlePosition, handleGpsError, { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 });
     }
 
-    function toggleManualDraw() {
-      isManualDraw = !isManualDraw;
-      isRecording = false;
-      document.getElementById('manualBtn').innerHTML = isManualDraw ? '✍️ Exit Manual Draw' : '✍️ Manual Draw Mode';
-      document.getElementById('mapStatus').textContent = isManualDraw ? "Manual draw active — tap the map to build your path" : "Ready — tap buttons above";
-      if (!isManualDraw) showSaveButton();
-    }
-
-    function pauseRecording() {
-      isPaused = !isPaused;
-      document.getElementById('pauseBtn').innerHTML = isPaused ? '▶️ Resume' : '⏸️ Pause';
-      document.getElementById('mapStatus').textContent = isPaused ? "Paused" : "Recording resumed";
-    }
-
-    function stopRecording() {
-      isRecording = false;
-      document.getElementById('pauseBtn').classList.add('hidden');
-      document.getElementById('stopBtn').classList.add('hidden');
-      document.getElementById('recordBtn').classList.remove('hidden');
-      document.getElementById('manualBtn').classList.remove('hidden');
-      document.getElementById('mapStatus').textContent = "Recording stopped";
-      showSaveButton();
-    }
-
-    function saveCurrentPath() {
-      if (recordingPoints.length < 3) { alert("Draw or record a bit more first!"); return; }
-      const name = prompt("Name this route (manual or live)", "Fort Worth Run - " + new Date().toLocaleDateString());
-      if (!name) return;
-      let meters = 0;
-      for (let i = 1; i < recordingPoints.length; i++) meters += map.distance(recordingPoints[i-1], recordingPoints[i]);
-      const miles = (meters * 0.000621371).toFixed(1);
-      const route = {id: Date.now(), name, date: new Date().toLocaleDateString(), miles, coords: recordingPoints.map(p => [p.lat, p.lng])};
-      savedRoutes.unshift(route);
-      localStorage.setItem('savedRoutes', JSON.stringify(savedRoutes));
-      renderSavedRoutes();
-      alert(`✅ Saved "${name}" — ${miles} miles!`);
-      clearLine(); // optional: clear after save
-    }
-
-    function clearLine() {
-      recordingPoints = [];
-      if (recordingPolyline) recordingPolyline.remove();
-      document.getElementById('liveDistance').textContent = "0.0 mi";
-      document.getElementById('saveBtn').classList.add('hidden');
-      document.getElementById('mapStatus').textContent = "Line cleared — start new path or recording";
-    }
-
-    function centerOnMe() {
-      if (locationMarker && map) map.flyTo(locationMarker.getLatLng(), map.getZoom());
-    }
-
-    function redrawRecordingLine() {
-      if (recordingPolyline) recordingPolyline.remove();
-      if (recordingPoints.length > 0) recordingPolyline = L.polyline(recordingPoints, {color:'#22c55e', weight:7}).addTo(map);
-    }
-
-    function updateLiveDistance() {
-      let meters = 0;
-      for (let i = 1; i < recordingPoints.length; i++) meters += map.distance(recordingPoints[i-1], recordingPoints[i]);
-      document.getElementById('liveDistance').textContent = (meters * 0.000621371).toFixed(2) + " mi";
-    }
-
-    function showSaveButton() {
-      if (recordingPoints.length > 2) document.getElementById('saveBtn').classList.remove('hidden');
-    }
-
-    function toggleFollow() {
-      followMe = document.getElementById('followToggle').checked;
-    }
-
-    function renderSavedRoutes() {
-      const container = document.getElementById("savedRoutesList");
-      container.innerHTML = savedRoutes.length ? "" : '<p class="text-gray-500 italic">No routes saved yet. Draw or record one above!</p>';
-      savedRoutes.forEach((route, index) => {
-        const div = document.createElement("div");
-        div.className = "bg-gray-800 rounded-2xl p-5 flex justify-between items-center";
-        div.innerHTML = `<div><div class="font-semibold">\( {route.name}</div><div class="text-sm text-gray-400"> \){route.date} • \( {route.miles} mi</div></div><div class="flex gap-2"><button onclick="loadSavedRoute( \){index});event.stopImmediatePropagation()" class="px-5 py-2 bg-green-600 rounded-xl text-sm font-medium">Load on Map</button><button onclick="deleteRoute(${index});event.stopImmediatePropagation()" class="px-4 py-2 text-red-400">🗑️</button></div>`;
-        container.appendChild(div);
-      });
-    }
-
-    function loadSavedRoute(index) {
-      const route = savedRoutes[index];
-      recordingPoints = route.coords.map(c => L.latLng(c[0], c[1]));
-      redrawRecordingLine();
-      updateLiveDistance();
-      showSaveButton();
-      if (map) map.fitBounds(recordingPoints);
-    }
-
-    function deleteRoute(index) {
-      if (confirm("Delete this route?")) {
-        savedRoutes.splice(index, 1);
-        localStorage.setItem('savedRoutes', JSON.stringify(savedRoutes));
-        renderSavedRoutes();
+    function handlePosition(pos) {
+      const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude);
+      lastPosition = { lat: latlng.lat, lng: latlng.lng, accuracy: Number.isFinite(pos.coords.accuracy) ? pos.coords.accuracy : null, speed: Number.isFinite(pos.coords.speed) ? pos.coords.speed : null, timestamp: pos.timestamp || Date.now() };
+      gpsReady = true;
+      document.getElementById('gpsBtn').textContent = '✓ GPS On';
+      document.getElementById('gpsBtn').disabled = true;
+      document.getElementById('startBtn').disabled = isRecording;
+      document.getElementById('accuracyBadge').textContent = lastPosition.accuracy ? `GPS ±${Math.round(lastPosition.accuracy)} m` : 'GPS active';
+      if (!userMarker) userMarker = L.circleMarker(latlng, { radius: 9, color: '#ffffff', weight: 3, fillColor: '#4da3ff', fillOpacity: 1, className: 'liveDot' }).addTo(map); else userMarker.setLatLng(latlng);
+      if (lastPosition.accuracy) {
+        if (!accuracyCircle) accuracyCircle = L.circle(latlng, { radius: lastPosition.accuracy, color: '#4da3ff', weight: 1, opacity: .35, fillColor: '#4da3ff', fillOpacity: .08 }).addTo(map); else accuracyCircle.setLatLng(latlng).setRadius(lastPosition.accuracy);
       }
+      if (followMe) map.setView(latlng, Math.max(map.getZoom(), 16), { animate: true });
+      if (!isRecording || isPaused) { document.getElementById('mapStatus').textContent = isPaused ? 'Activity paused.' : 'GPS ready — press Start when you are ready.'; return; }
+      if (shouldRecordPoint(lastPosition)) { activityPoints.push({ lat: lastPosition.lat, lng: lastPosition.lng, accuracy: lastPosition.accuracy, timestamp: lastPosition.timestamp }); renderActivityPath(); updateTrackStats(); }
     }
 
-    function toggleDark() {
-      document.documentElement.classList.toggle("dark");
-      const icon = document.getElementById("theme-icon");
-      icon.classList.toggle("fa-moon");
-      icon.classList.toggle("fa-sun");
+    function shouldRecordPoint(point) {
+      if (!point) return false;
+      if (point.accuracy && point.accuracy > 65) return false;
+      if (activityPoints.length === 0) return true;
+      const previous = activityPoints[activityPoints.length - 1];
+      const meters = map.distance([previous.lat, previous.lng], [point.lat, point.lng]);
+      const seconds = Math.max(1, (point.timestamp - previous.timestamp) / 1000);
+      if (meters < 2) return false;
+      if (meters / seconds > 14) return false;
+      return true;
     }
 
-    function exportLog() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(savedRoutes, null, 2));
-      const dl = document.createElement("a");
-      dl.href = dataStr; dl.download = "my-saved-routes.json"; dl.click();
-      alert("✅ All saved routes exported!");
+    function handleGpsError(err) {
+      gpsReady = false;
+      document.getElementById('gpsBtn').disabled = false;
+      document.getElementById('gpsBtn').textContent = '📍 Enable GPS';
+      document.getElementById('startBtn').disabled = true;
+      document.getElementById('mapStatus').textContent = 'GPS unavailable — check location permission.';
+      alert(`GPS error: ${err.message}\n\nAllow precise location for this site, then try again.`);
     }
 
-    // INIT
-    window.onload = () => {
-      initMap();
-      renderSavedRoutes();
-      document.getElementById('mapStatus').textContent = "Ready — Enable GPS or tap Manual Draw Mode";
-    };
+    function startActivity() {
+      if (!gpsReady || !lastPosition) { enableGPS(); return; }
+      isRecording = true; isPaused = false;
+      activityPoints = [{ lat: lastPosition.lat, lng: lastPosition.lng, accuracy: lastPosition.accuracy, timestamp: Date.now() }];
+      activityStartedAt = Date.now(); pausedStartedAt = null; pausedTotalMs = 0;
+      clearDisplayPolyline(); renderActivityPath(); updateTrackStats();
+      document.getElementById('startBtn').classList.add('hidden');
+      document.getElementById('pauseBtn').classList.remove('hidden');
+      document.getElementById('finishBtn').classList.remove('hidden');
+      document.getElementById('activityType').disabled = true;
+      document.getElementById('mapStatus').textContent = 'Recording live — move to draw your route.';
+      timerId = setInterval(updateTrackStats, 1000);
+    }
+
+    function togglePause() {
+      if (!isRecording) return;
+      isPaused = !isPaused;
+      const btn = document.getElementById('pauseBtn');
+      if (isPaused) { pausedStartedAt = Date.now(); btn.textContent = '▶ Resume'; document.getElementById('mapStatus').textContent = 'Activity paused.'; }
+      else { if (pausedStartedAt) pausedTotalMs += Date.now() - pausedStartedAt; pausedStartedAt = null; btn.textContent = 'Ⅱ Pause'; document.getElementById('mapStatus').textContent = 'Recording resumed.'; }
+      updateTrackStats();
+    }
+
+    function finishActivity() {
+      if (!isRecording) return;
+      if (isPaused && pausedStartedAt) { pausedTotalMs += Date.now() - pausedStartedAt; pausedStartedAt = null; }
+      const elapsedMs = getElapsedMs();
+      const miles = pathMeters(activityPoints) * MILES_PER_METER;
+      const type = document.getElementById('activityType').value;
+      const defaultName = `${type} — ${new Date().toLocaleDateString()}`;
+      const name = prompt('Name this activity', defaultName) || defaultName;
+      if (activityPoints.length > 1 || elapsedMs > 5000) {
+        activities.unshift({ id: Date.now(), name, type, date: new Date().toISOString(), distanceMiles: round(miles, 3), elapsedSeconds: Math.max(0, Math.round(elapsedMs / 1000)), paceSecondsPerMile: miles > .02 ? Math.round((elapsedMs / 1000) / miles) : null, coords: activityPoints.map(p => [round(p.lat, 6), round(p.lng, 6)]) });
+        persist();
+      }
+      isRecording = false; isPaused = false; clearInterval(timerId); timerId = null;
+      document.getElementById('startBtn').classList.remove('hidden'); document.getElementById('startBtn').disabled = !gpsReady;
+      document.getElementById('pauseBtn').classList.add('hidden'); document.getElementById('pauseBtn').textContent = 'Ⅱ Pause';
+      document.getElementById('finishBtn').classList.add('hidden'); document.getElementById('activityType').disabled = false;
+      document.getElementById('mapStatus').textContent = `Saved ${miles.toFixed(2)} mi ${type.toLowerCase()}.`;
+      renderSaved();
+    }
+
+    function getElapsedMs() { if (!activityStartedAt) return 0; const now = Date.now(); const currentPause = isPaused && pausedStartedAt ? now - pausedStartedAt : 0; return Math.max(0, now - activityStartedAt - pausedTotalMs - currentPause); }
+    function pathMeters(points) { let meters = 0; for (let i = 1; i < points.length; i++) { const a = Array.isArray(points[i - 1]) ? points[i - 1] : [points[i - 1].lat, points[i - 1].lng]; const b = Array.isArray(points[i]) ? points[i] : [points[i].lat, points[i].lng]; meters += map.distance(a, b); } return meters; }
+    function updateTrackStats() { const miles = pathMeters(activityPoints) * MILES_PER_METER; const elapsedSeconds = Math.round(getElapsedMs() / 1000); document.getElementById('distanceStat').textContent = miles.toFixed(2); document.getElementById('timeStat').textContent = formatDuration(elapsedSeconds); document.getElementById('paceStat').textContent = miles > .02 ? formatPace(elapsedSeconds / miles) : '--:--'; }
+    function renderActivityPath() { if (activityPolyline) activityPolyline.remove(); if (!activityPoints.length) return; activityPolyline = L.polyline(activityPoints.map(p => [p.lat, p.lng]), { color: '#fc4c02', weight: 6, opacity: .95, lineJoin: 'round' }).addTo(map); }
+
+    function addWaypoint(latlng) { buildPoints.push([latlng.lat, latlng.lng]); renderBuildRoute(); }
+    function undoWaypoint() { buildPoints.pop(); renderBuildRoute(); }
+    function closeLoop() { if (buildPoints.length < 3) return; const first = buildPoints[0], last = buildPoints[buildPoints.length - 1]; if (map.distance(first, last) > 3) buildPoints.push([...first]); renderBuildRoute(); }
+    function clearBuildRoute() { buildPoints = []; document.getElementById('routeName').value = ''; renderBuildRoute(); }
+
+    function renderBuildRoute() {
+      if (buildPolyline) buildPolyline.remove();
+      waypointMarkers.forEach(m => m.remove()); waypointMarkers = [];
+      if (buildPoints.length) {
+        buildPolyline = L.polyline(buildPoints, { color: '#25c26e', weight: 6, opacity: .95, lineJoin: 'round' }).addTo(map);
+        buildPoints.forEach((p, i) => { const marker = L.circleMarker(p, { radius: i === 0 ? 7 : 5, color: '#fff', weight: 2, fillColor: i === 0 ? '#25c26e' : '#131a22', fillOpacity: 1 }).addTo(map); waypointMarkers.push(marker); });
+      }
+      document.getElementById('buildDistance').textContent = `${(pathMeters(buildPoints) * MILES_PER_METER).toFixed(2)} mi`;
+      document.getElementById('waypointCount').textContent = buildPoints.length;
+    }
+
+    function saveBuiltRoute() {
+      if (buildPoints.length < 2) { alert('Tap at least two points on the map first.'); return; }
+      const distanceMiles = pathMeters(buildPoints) * MILES_PER_METER;
+      const entered = document.getElementById('routeName').value.trim();
+      const name = entered || `Custom Route — ${distanceMiles.toFixed(1)} mi`;
+      routes.unshift({ id: Date.now(), name, date: new Date().toISOString(), distanceMiles: round(distanceMiles, 3), coords: buildPoints.map(p => [round(p[0], 6), round(p[1], 6)]) });
+      persist(); document.getElementById('routeName').value = ''; document.getElementById('mapStatus').textContent = `Saved route: ${name}`; renderSaved();
+    }
+
+    function renderSaved() {
+      const routeList = document.getElementById('routeList'), activityList = document.getElementById('activityList');
+      routeList.innerHTML = routes.length ? '' : '<div class="tiny">No custom routes yet. Use BUILD to make one.</div>';
+      routes.forEach((route, index) => {
+        const el = document.createElement('div'); el.className = 'card';
+        el.innerHTML = `<div class="cardTop"><div><div class="cardTitle">${escapeHtml(route.name)}</div><div class="cardMeta">${new Date(route.date).toLocaleDateString()} • ${(route.distanceMiles || 0).toFixed(2)} mi</div></div><button class="iconBtn" title="Delete route" onclick="deleteRoute(${index})">🗑</button></div><div class="row" style="margin-top:9px"><button class="secondary grow" onclick="showRoute(${index})">Show on map</button><button class="primary grow" onclick="useRoute(${index})">Load into builder</button></div>`;
+        routeList.appendChild(el);
+      });
+      activityList.innerHTML = activities.length ? '' : '<div class="tiny">No recorded activities yet. Use TRACK and go get one.</div>';
+      activities.forEach((activity, index) => {
+        const el = document.createElement('div'); el.className = 'card';
+        el.innerHTML = `<div class="cardTop"><div><div class="cardTitle">${escapeHtml(activity.name)}</div><div class="cardMeta">${escapeHtml(activity.type || 'Activity')} • ${new Date(activity.date).toLocaleString()}</div></div><button class="iconBtn" title="Delete activity" onclick="deleteActivity(${index})">🗑</button></div><div class="metrics"><div class="metric"><strong>${Number(activity.distanceMiles || 0).toFixed(2)}</strong><span>MILES</span></div><div class="metric"><strong>${formatDuration(activity.elapsedSeconds || 0)}</strong><span>TIME</span></div><div class="metric"><strong>${activity.paceSecondsPerMile ? formatPace(activity.paceSecondsPerMile) : '--:--'}</strong><span>PACE</span></div></div><div class="row" style="margin-top:9px"><button class="secondary grow" onclick="showActivity(${index})">Show on map</button></div>`;
+        activityList.appendChild(el);
+      });
+    }
+
+    function showRoute(index) { const route = routes[index]; if (!route) return; showCoords(route.coords, '#25c26e'); document.getElementById('mapStatus').textContent = `${route.name} — ${Number(route.distanceMiles || 0).toFixed(2)} mi`; }
+    function showActivity(index) { const activity = activities[index]; if (!activity) return; showCoords(activity.coords, '#fc4c02'); document.getElementById('mapStatus').textContent = `${activity.name} — ${Number(activity.distanceMiles || 0).toFixed(2)} mi`; }
+    function showCoords(coords, color) { clearDisplayPolyline(); if (!coords || !coords.length) return; displayPolyline = L.polyline(coords, { color, weight: 6, opacity: .95 }).addTo(map); map.fitBounds(displayPolyline.getBounds(), { padding: [25, 25] }); }
+    function useRoute(index) { const route = routes[index]; if (!route) return; buildPoints = route.coords.map(p => [p[0], p[1]]); document.getElementById('routeName').value = route.name; setMode('build'); renderBuildRoute(); if (buildPolyline) map.fitBounds(buildPolyline.getBounds(), { padding: [25, 25] }); }
+    function deleteRoute(index) { if (!confirm('Delete this saved route?')) return; routes.splice(index, 1); persist(); clearDisplayPolyline(); renderSaved(); }
+    function deleteActivity(index) { if (!confirm('Delete this recorded activity?')) return; activities.splice(index, 1); persist(); clearDisplayPolyline(); renderSaved(); }
+
+    function centerOnMe() { if (!lastPosition) { enableGPS(); return; } map.setView([lastPosition.lat, lastPosition.lng], 17, { animate: true }); }
+    function fitActivePath() { let layer = null; if (mode === 'track' && activityPolyline && activityPoints.length > 1) layer = activityPolyline; if (mode === 'build' && buildPolyline && buildPoints.length > 1) layer = buildPolyline; if (mode === 'saved' && displayPolyline) layer = displayPolyline; if (layer) map.fitBounds(layer.getBounds(), { padding: [25, 25] }); else centerOnMe(); }
+    function toggleFollow() { followMe = !followMe; const btn = document.getElementById('followBtn'); btn.classList.toggle('active', followMe); btn.textContent = followMe ? '◎ Follow' : '○ Free map'; if (followMe) centerOnMe(); }
+    function clearDisplayPolyline() { if (displayPolyline) { displayPolyline.remove(); displayPolyline = null; } }
+
+    function exportData() {
+      const payload = { exportedAt: new Date().toISOString(), routes, activities };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `run-fw-export-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    }
+
+    function formatDuration(seconds) { seconds = Math.max(0, Math.round(Number(seconds) || 0)); const h = Math.floor(seconds / 3600), m = Math.floor((seconds % 3600) / 60), s = seconds % 60; return h > 0 ? `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
+    function formatPace(secondsPerMile) { const total = Math.max(0, Math.round(Number(secondsPerMile) || 0)); const m = Math.floor(total / 60), s = total % 60; return `${m}:${String(s).padStart(2,'0')}`; }
+    function round(value, places) { const factor = 10 ** places; return Math.round(value * factor) / factor; }
+    function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char])); }
+    window.addEventListener('load', () => { initMap(); renderSaved(); updateTrackStats(); });
   </script>
 </body>
 </html>
