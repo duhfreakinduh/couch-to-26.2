@@ -75,6 +75,9 @@ async function startRouteNavigation(route) {
   navMuted = settings.voice === false;
   showNavigationScreen();
   document.getElementById('navMuteBtn').textContent = navMuted ? '🔇 Voice off' : '🔊 Voice on';
+  document.getElementById('navStopBtn').textContent = '■ Stop navigation';
+  document.getElementById('navTurnDistance').textContent = '—';
+  document.getElementById('navOffRoute').classList.remove('show');
   setNavInstruction('Building turn-by-turn directions…', 'Please wait');
   document.getElementById('navRouteName').textContent = route.name || 'Route';
 
@@ -342,6 +345,9 @@ function decorateHistoryGuideButtons() {
     actions.insertBefore(button, actions.firstChild);
   });
 }
+
+// Health integrations were removed from the UI in build 5; keep old cached app code from touching missing health elements.
+if (typeof renderHealth === 'function') renderHealth = function () {};
 
 const strideBaseRenderHistory = renderHistory;
 renderHistory = function () {
