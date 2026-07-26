@@ -1,1 +1,79 @@
-.routeModes{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:0 0 9px}.routeMode{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:14px;padding:9px 6px;font-size:12px;font-weight:900}.routeMode.active{background:rgba(22,163,74,.1);border-color:rgba(22,163,74,.4);color:var(--green)}.routingNote{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:10px;margin:8px 2px 0}.routingDot{width:7px;height:7px;border-radius:50%;background:var(--green);flex:0 0 auto}.routingDot.busy{animation:pulse 1s infinite;background:var(--yellow)}@keyframes pulse{50%{opacity:.3}}.planFilters{display:flex;gap:6px;overflow:auto;padding:0 0 5px;scrollbar-width:none}.planFilters::-webkit-scrollbar{display:none}.planFilter{white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:8px 11px;font-size:11px;font-weight:900}.planFilter.active{background:var(--text);color:var(--bg)}.trainingList{display:grid;gap:9px;margin-top:10px}.trainingCard{background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:20px;padding:13px}.trainingTop{display:flex;justify-content:space-between;gap:10px}.trainingTitle{font-size:16px;font-weight:950;letter-spacing:-.3px}.trainingDesc{color:var(--muted);font-size:11px;line-height:1.45;margin-top:4px}.trainingBadge{height:max-content;background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:6px 8px;color:var(--muted);font-size:9px;font-weight:900;white-space:nowrap}.trainingMeta{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.trainingMeta span{background:var(--soft);border-radius:999px;padding:5px 8px;font-size:9px;font-weight:850;color:var(--muted)}.trainingActions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}.trainingActions .btn{min-height:40px;font-size:12px}.weekList{display:grid;gap:7px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}.weekBlock{background:var(--soft);border-radius:14px;padding:10px}.weekBlock h4{font-size:12px;margin:0 0 7px}.sessionRow{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-top:1px solid color-mix(in srgb,var(--line) 65%,transparent)}.sessionRow:first-of-type{border-top:0}.sessionCheck{width:24px;height:24px;border-radius:8px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;flex:0 0 auto;font-size:12px}.sessionCheck.done{background:var(--green);border-color:var(--green);color:#fff}.sessionText b{display:block;font-size:11px}.sessionText span{display:block;color:var(--muted);font-size:10px;line-height:1.35;margin-top:2px}.activePlan{margin-bottom:10px}.activePlanCard{background:linear-gradient(135deg,rgba(255,90,31,.13),rgba(124,58,237,.1));border:1px solid rgba(255,90,31,.22);border-radius:20px;padding:14px}.activePlanLabel{text-transform:uppercase;letter-spacing:.8px;font-size:9px;font-weight:950;color:var(--accent)}.activePlanTitle{font-size:19px;font-weight:950;margin-top:3px}.activeNext{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;margin-top:10px}.activeNext small{display:block;color:var(--muted);font-size:9px;text-transform:uppercase;font-weight:900}.activeNext b{display:block;margin-top:3px;font-size:13px}.activeNext p{font-size:10px;color:var(--muted);margin:3px 0 0;line-height:1.4}.progressTrack{height:7px;border-radius:999px;background:var(--soft);overflow:hidden;margin-top:10px}.progressFill{height:100%;background:var(--accent);border-radius:999px}.statsHeading{font-size:14px;font-weight:950;margin-bottom:9px}.compatHealth{display:none!important}@media(max-width:480px){.trainingActions{grid-template-columns:1fr 1fr}.trainingTitle{font-size:15px}.routeMode{font-size:11px;padding:9px 3px}}
+.routeModes{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:0 0 9px}
+.routeMode{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:14px;padding:9px 6px;font-size:12px;font-weight:900}
+.routeMode.active{background:rgba(22,163,74,.1);border-color:rgba(22,163,74,.4);color:var(--green)}
+.routingNote{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:10px;margin:8px 2px 0}
+.routingDot{width:7px;height:7px;border-radius:50%;background:var(--green);flex:0 0 auto}
+.routingDot.busy{animation:pulse 1s infinite;background:var(--yellow)}
+@keyframes pulse{50%{opacity:.3}}
+
+.planSafety{display:flex;gap:8px;align-items:flex-start;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.18);border-radius:16px;padding:11px 12px;margin-bottom:10px}
+.planSafety b{white-space:nowrap;font-size:11px;color:var(--blue)}
+.planSafety span{font-size:10px;line-height:1.45;color:var(--muted)}
+.planFilters{display:flex;gap:6px;overflow:auto;padding:0 0 5px;scrollbar-width:none}
+.planFilters::-webkit-scrollbar{display:none}
+.planFilter{white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:8px 11px;font-size:11px;font-weight:900}
+.planFilter.active{background:var(--text);color:var(--bg)}
+
+.trainingList{display:grid;gap:9px;margin-top:10px}
+.trainingCard{background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:20px;padding:13px}
+.trainingTop{display:flex;justify-content:space-between;gap:10px}
+.trainingTitle{font-size:16px;font-weight:950;letter-spacing:-.3px}
+.trainingDesc{color:var(--muted);font-size:11px;line-height:1.45;margin-top:4px}
+.trainingBadge{height:max-content;background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:6px 8px;color:var(--muted);font-size:9px;font-weight:900;white-space:nowrap}
+.trainingMeta{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.trainingMeta span{background:var(--soft);border-radius:999px;padding:5px 8px;font-size:9px;font-weight:850;color:var(--muted)}
+.trainingActions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+.trainingActions .btn{min-height:40px;font-size:12px}
+.progressTrack{height:7px;border-radius:999px;background:var(--soft);overflow:hidden;margin-top:10px}
+.progressFill{height:100%;background:var(--accent);border-radius:999px}
+
+.weekList{display:grid;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.weekBlock{background:var(--soft);border-radius:14px;padding:10px}
+.weekBlock h4{font-size:12px;margin:0 0 7px}
+.sessionRow{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-top:1px solid color-mix(in srgb,var(--line) 65%,transparent)}
+.sessionRow:first-of-type{border-top:0}
+.sessionCheck{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;flex:0 0 auto;font-size:12px}
+.sessionCheck.done{background:var(--green);border-color:var(--green);color:#fff}
+.sessionText{min-width:0;flex:1}
+.sessionText>b{display:block;font-size:11px;line-height:1.3}
+.sessionText>span{display:block;color:var(--muted);font-size:10px;line-height:1.4;margin-top:3px}
+.sessionDetails{margin-top:6px}
+.sessionDetails summary{cursor:pointer;color:var(--blue);font-size:10px;font-weight:900;list-style:none}
+.sessionDetails summary::-webkit-details-marker{display:none}
+.sessionDetails summary:before{content:'＋ ';font-weight:950}
+.sessionDetails[open] summary:before{content:'− '}
+.sessionDetailGrid{display:grid;gap:6px;margin-top:7px}
+.sessionBlock{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:8px}
+.sessionBlock b{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.35px}
+.sessionBlock span{display:block;color:var(--muted);font-size:10px;line-height:1.45;margin-top:3px}
+.workoutBlock{border-color:rgba(22,163,74,.25);background:rgba(22,163,74,.06)}
+.workoutBlock ol{margin:5px 0 0;padding-left:20px}
+.workoutBlock li{font-size:10px;line-height:1.45;margin:2px 0}
+.cautionBlock{border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.06)}
+
+.activePlan{margin-bottom:10px}
+.activePlanCard{background:linear-gradient(135deg,rgba(255,90,31,.13),rgba(124,58,237,.1));border:1px solid rgba(255,90,31,.22);border-radius:20px;padding:14px}
+.activePlanLabel{text-transform:uppercase;letter-spacing:.8px;font-size:9px;font-weight:950;color:var(--accent)}
+.activePlanTitle{font-size:19px;font-weight:950;margin-top:3px}
+.activeNext{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;margin-top:10px}
+.activeNext small{display:block;color:var(--muted);font-size:9px;text-transform:uppercase;font-weight:900}
+.activeNext>b{display:block;margin-top:3px;font-size:13px}
+.activeNext p{font-size:10px;color:var(--muted);margin:3px 0 0;line-height:1.4}
+.textBtn{width:100%;border:0;background:transparent;color:var(--muted);font-size:10px;font-weight:850;padding:10px 0 0}
+
+.exerciseLibraryPanel{margin-top:12px}
+.exerciseLibrary{display:grid;gap:6px;margin-top:8px}
+.exerciseItem{background:var(--soft);border-radius:12px;padding:9px 10px}
+.exerciseItem summary{font-size:11px;font-weight:900;cursor:pointer}
+.exerciseItem p{font-size:10px;line-height:1.45;color:var(--muted);margin:6px 0 3px}
+.exerciseItem small{font-size:9px;line-height:1.4;color:var(--muted)}
+.statsHeading{font-size:14px;font-weight:950;margin-bottom:9px}
+.compatHealth{display:none!important}
+
+@media(max-width:480px){
+  .trainingActions{grid-template-columns:1fr 1fr}
+  .trainingTitle{font-size:15px}
+  .routeMode{font-size:11px;padding:9px 3px}
+  .planSafety{display:block}
+  .planSafety b{display:block;margin-bottom:4px}
+}
