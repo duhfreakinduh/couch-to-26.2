@@ -24,3 +24,5 @@ jobs:
           path: .
           include-hidden-files: true
           if-no-files-found: error
+
+# Temporary packaging workflow.
