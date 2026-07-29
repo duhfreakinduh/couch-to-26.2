@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#111827">
   <meta name="description" content="Stride FW live GPS activity tracker, road-following route planner, voice navigation, bodyweight training plans, swimming, sharing and crews">
-  <meta name="stride-build" content="2026.07.25-7">
+  <meta name="stride-build" content="2026.07.29-1">
   <title>Stride FW — Run & Route Tracker</title>
   <link rel="preconnect" href="https://unpkg.com">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -19,6 +19,7 @@
   <script src="route-plans.js?v=20260725-7" defer></script>
   <script src="plans-storage.js?v=20260725-7" defer></script>
   <script src="navigation.js?v=20260725-7" defer></script>
+  <script src="stride-patch.js?v=20260729-1" defer></script>
 </head>
 <body>
 <main class="app">
@@ -151,9 +152,13 @@
       <div class="setting"><div class="settingText"><b>Keep screen awake</b><span>While a workout is recording</span></div><input id="wakeToggle" class="switch" type="checkbox" checked onchange="saveSettings()"></div>
       <div class="setting"><div class="settingText"><b>Follow my location</b><span>Keep the map centered on you</span></div><input id="followToggle" class="switch" type="checkbox" checked onchange="saveSettings()"></div>
     </div>
-    <div class="panel"><div class="grid2"><button class="btn shareWide" onclick="shareApp()">↗ Share Stride FW</button><button class="btn secondary" onclick="exportData()">Export data</button></div><button class="btn danger" style="width:100%;margin-top:8px" onclick="clearAllData()">Clear all data</button></div>
+    <div class="panel">
+      <div class="grid2"><button class="btn shareWide" onclick="shareApp()">↗ Share Stride FW</button><button class="btn secondary" onclick="exportData()">Export data</button></div>
+      <button class="btn secondary" style="width:100%;margin-top:8px" onclick="importData()">Import data</button>
+      <button class="btn danger" style="width:100%;margin-top:8px" onclick="clearAllData()">Clear all data</button>
+    </div>
     <p class="hint">Activities, routes, crews and training progress are stored locally in this browser.</p>
-    <p class="hint" style="text-align:center">Stride FW build 2026.07.25-7</p>
+    <p class="hint" style="text-align:center">Stride FW build 2026.07.29-1</p>
   </section>
 </main>
 
