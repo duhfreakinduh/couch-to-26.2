@@ -1,0 +1,26 @@
+name: Package Stride FW
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Remove Git metadata and temporary workflow
+        run: rm -rf .git .github
+      - name: Upload Stride FW source
+        uses: actions/upload-artifact@v4
+        with:
+          name: stride-fw-source
+          path: .
+          include-hidden-files: true
+          if-no-files-found: error
